@@ -1,0 +1,25 @@
+<launch>
+  <arg name="record" default="false" />
+
+  <arg name="right_electric_gripper" default="true"/>
+  <arg name="left_electric_gripper" default="true"/>
+  <arg name="left_tip_name" default="left_gripper"/>
+  <arg name="right_tip_name" default="right_gripper"/>
+
+  <param name="robot_description"
+      command="$(find xacro)/xacro.py --inorder $(find baxter_description)/urdf/baxter.urdf.xacro" unless="$(arg record)"/>
+
+  <param name="robot_description_semantic"
+      command="$(find xacro)/xacro.py --inorder $(find baxter_moveit_config)/config/baxter.srdf.xacro
+          left_electric_gripper:=$(arg left_electric_gripper)
+          right_electric_gripper:=$(arg right_electric_gripper)
+          left_tip_name:=$(arg left_tip_name)
+          right_tip_name:=$(arg right_tip_name)" unless="$(arg record)"/>
+
+  <param name="file_path" value="/home/ghanim/.ros/right_joint_state.csv"/>
+  <param name="baxter_arm" value="right_arm"/>
+  <param name="dt" value="0.006"/>
+  <param name="record" value="$(arg record)"/>
+  <node name="baxter_throwing_ball_exp" pkg="baxter_throwing_ball_exp" type="throw_ball_naive" output="screen" args="joint_states:=/robot/joint_states">
+  </node>
+</launch>
