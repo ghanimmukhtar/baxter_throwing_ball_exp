@@ -53,19 +53,45 @@ bool execute_joint_trajectory(actionlib::SimpleActionClient<control_msgs::Follow
 }
 
 //go to the first position in the trajectory to be executed
-bool go_to_initial_position(Data_config& parameters, ros::Publisher& cmd_pub){
-    boost::timer time_elapsed;
-    time_elapsed.restart();
-    baxter_core_msgs::JointCommand command_msg;
-    command_msg.mode = command_msg.POSITION_MODE;
-    command_msg.names = parameters.get_baxter_arm_joints_names(parameters.get_baxter_arm());
-    command_msg.command = parameters.get_joint_trajectory().points[0].positions;
-    while(largest_difference(parameters.get_joint_trajectory().points[0].positions, extract_arm_joints_values(parameters)) > 0.01 && time_elapsed.elapsed() < 5.0)
-        cmd_pub.publish(command_msg);
-    if(largest_difference(parameters.get_joint_trajectory().points[0].positions, extract_arm_joints_values(parameters)) > 0.01)
-        return true;
-    else
+bool go_to_initial_position(Data_config& parameters, actionlib::SimpleActionClient<control_msgs::FollowJointTrajectoryAction>& ac){
+    //construct a trajectory with two point (current point and desired point, first point in the trajectory)
+    trajectory_msgs::JointTrajectory my_joint_trajectory;
+    my_joint_trajectory.joint_names = parameters.get_baxter_arm_joints_names(parameters.get_baxter_arm());
+    if(!parameters.get_joint_trajectory().points.empty()){
+            for(size_t i = 0; i < 2; i++){
+                trajectory_msgs::JointTrajectoryPoint pt;
+                //first point is current point
+                if(i == 0)
+                    pt.positions = extract_arm_joints_values(parameters);
+                //second point is the first point in the desired trajectory
+                else
+                    pt.positions = parameters.get_joint_trajectory().points[0].positions;
+                pt.velocities.resize(parameters.get_joint_trajectory().points[0].positions.size(), 0.0);
+                pt.accelerations.resize(parameters.get_joint_trajectory().points[0].positions.size(), 0.0);
+                pt.effort.resize(parameters.get_joint_trajectory().points[0].positions.size(), 0.0);
+                pt.time_from_start = ros::Duration(3*i);
+                my_joint_trajectory.points.push_back(pt);
+            }
+        }
+    if (!ac.waitForServer(ros::Duration(2.0)))
+    {
+        ROS_ERROR("Could not connect to action server");
         return false;
+    }
+
+    control_msgs::FollowJointTrajectoryGoal goal;
+    goal.trajectory = my_joint_trajectory;
+    goal.goal_time_tolerance = ros::Duration(1.0);
+    ac.sendGoal(goal);
+
+    if (ac.waitForResult(goal.trajectory.points[goal.trajectory.points.size()-1].time_from_start + ros::Duration(5)))
+    {
+        ROS_INFO("Action server reported successful execution");
+        return true;
+    } else {
+        ROS_WARN("Action server could not execute trajectory");
+        return false;
+    }
 }
 
 //check all trajectory points for selfcollision

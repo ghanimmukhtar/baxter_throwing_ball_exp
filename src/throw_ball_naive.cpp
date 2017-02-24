@@ -63,7 +63,7 @@ int main(int argc, char **argv)
 
 
         if(is_trajectory_valid(parameters)){
-            go_to_initial_position(parameters, pub_msg_right);
+            go_to_initial_position(parameters, ac);
             execute_joint_trajectory(ac, parameters.get_joint_trajectory(), parameters, output_file);
         }
         else
