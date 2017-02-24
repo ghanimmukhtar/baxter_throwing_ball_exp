@@ -8,7 +8,9 @@ typedef vector <record_t> data_t;
 
 //The function that will execute the trajectory
 bool execute_joint_trajectory(actionlib::SimpleActionClient<control_msgs::FollowJointTrajectoryAction>& ac,
-                              trajectory_msgs::JointTrajectory& joint_trajectory){
+                              trajectory_msgs::JointTrajectory& joint_trajectory,
+                              Data_config &parameters,
+                              ofstream& output_file){
     if (!ac.waitForServer(ros::Duration(2.0)))
     {
         ROS_ERROR("Could not connect to action server");
@@ -19,6 +21,27 @@ bool execute_joint_trajectory(actionlib::SimpleActionClient<control_msgs::Follow
     goal.trajectory = joint_trajectory;
     goal.goal_time_tolerance = ros::Duration(1.0);
     ac.sendGoal(goal);
+    //feedback loop
+    std::vector<double> last_desired_position = parameters.get_baxter_arm_joint_values(parameters.get_baxter_arm()),
+            last_actual_position = parameters.get_baxter_arm_joint_values(parameters.get_baxter_arm());
+    while(!ac.getState().isDone()){
+        if(!parameters.get_joint_action_feedback().feedback.desired.positions.empty()){
+            if(largest_difference(last_desired_position, parameters.get_joint_action_feedback().feedback.desired.positions) > parameters.get_epsilon()){
+                last_desired_position = parameters.get_joint_action_feedback().feedback.desired.positions;
+                last_actual_position = parameters.get_joint_action_feedback().feedback.actual.positions;
+
+                output_file << parameters.get_joint_action_feedback().feedback.header.stamp.toSec()
+                               << ",";
+                for(size_t i = 0; i < last_desired_position.size(); ++i)
+                    output_file << last_desired_position[i] << ",";
+                for(size_t i = 0; i < last_actual_position.size(); ++i)
+                    output_file << last_actual_position[i] << ",";
+                output_file << "\n";
+            }
+
+        }
+
+    }
     if (ac.waitForResult(goal.trajectory.points[goal.trajectory.points.size()-1].time_from_start + ros::Duration(5)))
     {
         ROS_INFO("Action server reported successful execution");
@@ -27,6 +50,22 @@ bool execute_joint_trajectory(actionlib::SimpleActionClient<control_msgs::Follow
         ROS_WARN("Action server could not execute trajectory");
         return false;
     }
+}
+
+//go to the first position in the trajectory to be executed
+bool go_to_initial_position(Data_config& parameters, ros::Publisher& cmd_pub){
+    boost::timer time_elapsed;
+    time_elapsed.restart();
+    baxter_core_msgs::JointCommand command_msg;
+    command_msg.mode = command_msg.POSITION_MODE;
+    command_msg.names = parameters.get_baxter_arm_joints_names(parameters.get_baxter_arm());
+    command_msg.command = parameters.get_joint_trajectory().points[0].positions;
+    while(largest_difference(parameters.get_joint_trajectory().points[0].positions, extract_arm_joints_values(parameters)) > 0.01 && time_elapsed.elapsed() < 5.0)
+        cmd_pub.publish(command_msg);
+    if(largest_difference(parameters.get_joint_trajectory().points[0].positions, extract_arm_joints_values(parameters)) > 0.01)
+        return true;
+    else
+        return false;
 }
 
 //check all trajectory points for selfcollision
@@ -77,7 +116,7 @@ bool is_trajectory_valid(Data_config& parameters){
     return true;
 }
 
-void extract_arm_joints_values(Data_config& parameters){
+std::vector<double>& extract_arm_joints_values(Data_config& parameters){
     std::vector<std::string> joint_names;
     std::vector<double> joint_values;
     //std::vector<int> joint_index;
@@ -90,6 +129,7 @@ void extract_arm_joints_values(Data_config& parameters){
                                                                                    joint_names[i]))]);
     }
     parameters.set_baxter_arm_joint_values(joint_values, parameters.get_baxter_arm());
+    return parameters.get_baxter_arm_joint_values(parameters.get_baxter_arm());
 }
 
 //record arm joint positions into a file
@@ -166,27 +206,46 @@ double largest_difference(std::vector<double> &first, std::vector<double> &secon
 }
 
 //git rid of doubled vectors in a a vector of vectors
-void optimize_vector_of_vectors(std::vector<std::vector<double>>& vector_to_optimize){
+void optimize_vector_of_vectors(std::vector<std::vector<double>>& vector_to_optimize, Data_config& parameters){
     //make a copy to work with and another to be the output
     std::vector<std::vector<double>> working_copy = vector_to_optimize, output_copy;
     for(unsigned i = 0; i < working_copy.size(); i++)
         for(unsigned j = 1; j < working_copy.size(); j++)
-            if(largest_difference(working_copy[i], working_copy[j]) < 0.0001)
+            if(largest_difference(working_copy[i], working_copy[j]) < parameters.get_epsilon())
                 working_copy.erase(working_copy.begin() + j);
     vector_to_optimize = working_copy;
 }
 
 void construct_joint_trajectory_from_vector(trajectory_msgs::JointTrajectory& my_joint_trajectory, data_t& raw_joint_traj, double& dt){
     double t_ = 0.0;
-    for(unsigned i = 0; i < raw_joint_traj.size(); i++){
-        trajectory_msgs::JointTrajectoryPoint pt;
-        pt.positions = raw_joint_traj[i];
-        pt.velocities.resize(raw_joint_traj[i].size(), 0.0);
-        pt.accelerations.resize(raw_joint_traj[i].size(), 0.0);
-        pt.effort.resize(raw_joint_traj[i].size(), 0.0);
-        pt.time_from_start = ros::Duration(i*dt);
-        t_+=i*dt;
-        my_joint_trajectory.points.push_back(pt);
+    if(!raw_joint_traj.empty()){
+        //if it is sangsu kind of files (15 variables per line) do the following loop
+        if(raw_joint_traj[0].size() > 7){
+            for(size_t i = 0; i < raw_joint_traj.size(); i++){
+                trajectory_msgs::JointTrajectoryPoint pt;
+                pt.positions = {raw_joint_traj[i][1], raw_joint_traj[i][2], raw_joint_traj[i][3],
+                               raw_joint_traj[i][4], raw_joint_traj[i][5], raw_joint_traj[i][6],
+                               raw_joint_traj[i][7]};
+                pt.velocities.resize(raw_joint_traj[i].size(), 0.0);
+                pt.accelerations.resize(raw_joint_traj[i].size(), 0.0);
+                pt.effort.resize(raw_joint_traj[i].size(), 0.0);
+                pt.time_from_start = ros::Duration(raw_joint_traj[i][0]);
+                my_joint_trajectory.points.push_back(pt);
+            }
+        }
+        //if it is a file with only joints waypoints for one arm (7 variables per line) do the following loop
+        else {
+            for(unsigned i = 0; i < raw_joint_traj.size(); i++){
+                trajectory_msgs::JointTrajectoryPoint pt;
+                pt.positions = raw_joint_traj[i];
+                pt.velocities.resize(raw_joint_traj[i].size(), 0.0);
+                pt.accelerations.resize(raw_joint_traj[i].size(), 0.0);
+                pt.effort.resize(raw_joint_traj[i].size(), 0.0);
+                pt.time_from_start = ros::Duration(i*dt);
+                t_+=i*dt;
+                my_joint_trajectory.points.push_back(pt);
+            }
+        }
     }
 }
 
@@ -204,7 +263,7 @@ void construct_joint_trajectory_from_file(std::ifstream& text_file, Data_config&
     }
     text_file.close();
     //delete doupled values
-    optimize_vector_of_vectors(data);
+    optimize_vector_of_vectors(data, parameters);
 
     //for printing all joints values
     /*for(unsigned i = 0; i < data.size(); i++){

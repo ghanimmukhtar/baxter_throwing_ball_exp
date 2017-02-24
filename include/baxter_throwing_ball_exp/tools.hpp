@@ -14,8 +14,10 @@
 #include <sensor_msgs/JointState.h>
 #include <tf/tf.h>
 #include <control_msgs/FollowJointTrajectoryAction.h>
+#include <control_msgs/FollowJointTrajectoryActionFeedback.h>
 #include <actionlib/client/simple_action_client.h>
 #include <baxter_core_msgs/EndpointState.h>
+#include <baxter_core_msgs/JointCommand.h>
 #include <geometry_msgs/PoseStamped.h>
 #include <moveit/robot_model_loader/robot_model_loader.h>
 #include <moveit/trajectory_processing/iterative_time_parameterization.h>
@@ -33,7 +35,11 @@
  * @return true if the guiding of the arm is successful, false otherwise
 **/
 bool execute_joint_trajectory(actionlib::SimpleActionClient<control_msgs::FollowJointTrajectoryAction>& ac,
-                              trajectory_msgs::JointTrajectory& joint_trajectory);
+                              trajectory_msgs::JointTrajectory& joint_trajectory,
+                              Data_config& parameters,
+                              std::ofstream &output_file);
+
+bool go_to_initial_position(Data_config& parameters, ros::Publisher& cmd_pub);
 /**
  * @brief Check if all joint trajectory points are valid (in terms of self collision)
  * @param Data_config class
@@ -44,9 +50,9 @@ bool is_trajectory_valid(Data_config& parameters);
 /**
  * @brief Extract joint values from the sensor_msgs::JointState using the correct arm choise set in parameters
  * @param Data_config class
- * @return Nothing but fill in the parameters the corresponding joint values
+ * @return vector of joint values and fill in the parameters the corresponding joint values
 **/
-void extract_arm_joints_values(Data_config& parameters);
+std::vector<double>& extract_arm_joints_values(Data_config& parameters);
 
 /**
  * @brief Read a text file that include joint waypoints and construct the joint trajectory_msgs

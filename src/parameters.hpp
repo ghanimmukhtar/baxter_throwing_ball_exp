@@ -8,6 +8,7 @@
 #include <vector>
 #include <moveit/robot_state/conversions.h>
 #include <moveit/robot_model_loader/robot_model_loader.h>
+#include <control_msgs/FollowJointTrajectoryActionFeedback.h>
 #include <tf/tf.h>
 
 struct Parameters {
@@ -20,7 +21,8 @@ struct Parameters {
     std::vector<std::string> baxter_left_arm_joints_names = {"left_s0", "left_s1", "left_e0", "left_e1", "left_w0", "left_w1", "left_w2"};
     sensor_msgs::JointState my_joint_state;
     std::vector<double> right_arm_joints, left_arm_joints;
-    double dt;
+    control_msgs::FollowJointTrajectoryActionFeedback right_joint_action_feedback;
+    double dt, epsilon, rate;
     robot_model::RobotModelPtr robot_model;
 };
 
@@ -69,8 +71,20 @@ public:
             return params.left_arm_joints;
     }
 
+    control_msgs::FollowJointTrajectoryActionFeedback& get_joint_action_feedback(){
+            return params.right_joint_action_feedback;
+    }
+
     double& get_dt(){
         return params.dt;
+    }
+
+    double& get_rate(){
+        return params.rate;
+    }
+
+    double& get_epsilon(){
+        return params.epsilon;
     }
 
     robot_model::RobotModelPtr& get_baxter_robot_model(){
@@ -105,8 +119,20 @@ public:
         params.dt = dt;
     }
 
+    void set_rate(double& rate){
+        params.rate = rate;
+    }
+
     void set_baxter_robot_model(robot_model::RobotModelPtr& robot_model_baxter){
         params.robot_model = robot_model_baxter;
+    }
+
+    void set_joint_action_feedback(control_msgs::FollowJointTrajectoryActionFeedback& feedback){
+            params.right_joint_action_feedback = feedback;
+    }
+
+    void set_epsilon(double& epsilon){
+        params.epsilon = epsilon;
     }
 };
 
