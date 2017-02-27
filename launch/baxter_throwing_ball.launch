@@ -16,12 +16,17 @@
           left_tip_name:=$(arg left_tip_name)
           right_tip_name:=$(arg right_tip_name)" unless="$(arg record)"/>
 
+
   <param name="input_file_path" value="/home/ghanim/git/catkin_ws/src/baxter_throwing_ball_exp/Trajectory_Data/1.txt"/>
   <param name="feedback_file_path" value="/home/ghanim/git/catkin_ws/src/baxter_throwing_ball_exp/Trajectory_Data/feedback.txt"/>
+
+  <!--param name="input_file_path" value="/home/mukhtar/git/catkin_ws/src/baxter_throwing_ball_exp/Trajectory_Data/4.txt"/>
+  <param name="feedback_file_path" value="/home/mukhtar/git/catkin_ws/src/baxter_throwing_ball_exp/Trajectory_Data/feedback.txt"/-->
+
   <param name="baxter_arm" value="right_arm"/>
   <param name="dt" value="0.006"/>
   <param name="rate" value="100"/>
-  <param name="epsilon" value="0.01"/>
+  <param name="epsilon" value="0.000001"/>
   <param name="record" value="$(arg record)"/>
   <param name="execute" value="true"/>
   <!--node name="baxter_throwing_ball_exp" pkg="baxter_throwing_ball_exp" type="throw_ball_naive" output="screen" args="joint_states:=/robot/joint_states" launch-prefix="gdb -ex run args"-->

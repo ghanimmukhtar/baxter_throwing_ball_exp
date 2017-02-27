@@ -25,6 +25,7 @@ bool execute_joint_trajectory(actionlib::SimpleActionClient<control_msgs::Follow
     if(!parameters.get_record())
         parameters.set_record(true);
 
+
     if (ac.waitForResult(goal.trajectory.points[goal.trajectory.points.size()-1].time_from_start + ros::Duration(10)))
     {
         ROS_INFO("Action server reported successful execution");
