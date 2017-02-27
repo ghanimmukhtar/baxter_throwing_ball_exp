@@ -24,13 +24,19 @@ bool execute_joint_trajectory(actionlib::SimpleActionClient<control_msgs::Follow
     //feedback loop
     std::vector<double> last_desired_position = parameters.get_baxter_arm_joint_values(parameters.get_baxter_arm()),
             last_actual_position = parameters.get_baxter_arm_joint_values(parameters.get_baxter_arm());
+    bool first = true;
+    double start_time;
     while(!ac.getState().isDone()){
         if(!parameters.get_joint_action_feedback().feedback.desired.positions.empty()){
+            if(first){
+                start_time = parameters.get_joint_action_feedback().feedback.header.stamp.toSec();
+                first = false;
+            }
             if(largest_difference(last_desired_position, parameters.get_joint_action_feedback().feedback.desired.positions) > parameters.get_epsilon()){
                 last_desired_position = parameters.get_joint_action_feedback().feedback.desired.positions;
                 last_actual_position = parameters.get_joint_action_feedback().feedback.actual.positions;
 
-                output_file << parameters.get_joint_action_feedback().feedback.header.stamp.toSec()
+                output_file << parameters.get_joint_action_feedback().feedback.header.stamp.toSec() - start_time
                                << ",";
                 for(size_t i = 0; i < last_desired_position.size(); ++i)
                     output_file << last_desired_position[i] << ",";
@@ -312,7 +318,7 @@ void construct_joint_trajectory_from_file(std::ifstream& text_file, Data_config&
     }
     text_file.close();
     //delete doupled values
-    optimize_vector_of_vectors(data, parameters);
+    //optimize_vector_of_vectors(data, parameters);
 
     //for printing all joints values
     /*for(unsigned i = 0; i < data.size(); i++){
