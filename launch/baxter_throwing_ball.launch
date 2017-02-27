@@ -16,8 +16,8 @@
           left_tip_name:=$(arg left_tip_name)
           right_tip_name:=$(arg right_tip_name)" unless="$(arg record)"/>
 
-  <param name="input_file_path" value="/home/mukhtar/git/catkin_ws/src/baxter_throwing_ball_exp/Trajectory_Data/3.txt"/>
-  <param name="feedback_file_path" value="/home/mukhtar/git/catkin_ws/src/baxter_throwing_ball_exp/Trajectory_Data/feedback.txt"/>
+  <param name="input_file_path" value="/home/ghanim/git/catkin_ws/src/baxter_throwing_ball_exp/Trajectory_Data/1.txt"/>
+  <param name="feedback_file_path" value="/home/ghanim/git/catkin_ws/src/baxter_throwing_ball_exp/Trajectory_Data/feedback.txt"/>
   <param name="baxter_arm" value="right_arm"/>
   <param name="dt" value="0.006"/>
   <param name="rate" value="100"/>

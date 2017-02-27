@@ -2,6 +2,7 @@
 
 // The parameters structure is used by all call backs, main and service
 Data_config parameters;
+std::ofstream output_file;
 
 void joint_state_callback(sensor_msgs::JointState jo_state){
     parameters.set_joint_state(jo_state);
@@ -9,6 +10,7 @@ void joint_state_callback(sensor_msgs::JointState jo_state){
 
 void feedback_callback(control_msgs::FollowJointTrajectoryActionFeedback feedback){
     parameters.set_joint_action_feedback(feedback);
+    record_feedback(parameters, feedback, output_file);
 }
 
 int main(int argc, char **argv)
@@ -57,7 +59,7 @@ int main(int argc, char **argv)
     else{
         //test reading and executing a trajectory
         std::ifstream input_file(input_file_path, std::ios_base::in);
-        std::ofstream output_file;
+
         output_file.open(feedback_file_path, std::ofstream::out);
 
         construct_joint_trajectory_from_file(input_file, parameters);
@@ -66,7 +68,7 @@ int main(int argc, char **argv)
         if(is_trajectory_valid(parameters)){
             if(execute){
                 go_to_initial_position(parameters, ac);
-                execute_joint_trajectory(ac, parameters.get_joint_trajectory(), parameters, output_file);
+                execute_joint_trajectory(ac, parameters.get_joint_trajectory(), parameters);
             }
         }
         else
@@ -74,8 +76,6 @@ int main(int argc, char **argv)
         input_file.close();
         output_file.close();
         ROS_INFO_STREAM("trajectory size is: " << parameters.get_joint_trajectory().points.size());
-        ROS_INFO_STREAM("epsilon value is: " << parameters.get_epsilon());
-        ROS_INFO_STREAM("rate value is: " << parameters.get_rate());
     }
     return 0;
 }

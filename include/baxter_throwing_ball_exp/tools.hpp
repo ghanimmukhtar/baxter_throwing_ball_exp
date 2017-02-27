@@ -30,19 +30,33 @@
 
 /**
  * @brief Execute a trajectory given as joint trajectory using joint action server
+ * @param action client to joint action server,
+ * @param joint trajectory_msgs, and
+ * @param Data_config class
+ * @return true if the trajectory is successful, false otherwise
+**/
+bool execute_joint_trajectory(actionlib::SimpleActionClient<control_msgs::FollowJointTrajectoryAction>& ac,
+                              trajectory_msgs::JointTrajectory& joint_trajectory,
+                              Data_config& parameters);
+
+/**
+ * @brief Guide the arm to the initial position of the trajectory to be executed later, using joint action server
+ * @param Data_config class, and
+ * @param action client to joint action server
+ * @return true if guiding of the arm is successful, false otherwise
+**/
+bool go_to_initial_position(Data_config& parameters,
+                            actionlib::SimpleActionClient<control_msgs::FollowJointTrajectoryAction> &ac);
+
+/**
+ * @brief Execute a trajectory given as joint trajectory using joint action server
  * @param action client to joint action server
  * @param joint trajectory_msgs
  * @return true if the guiding of the arm is successful, false otherwise
 **/
-bool execute_joint_trajectory(actionlib::SimpleActionClient<control_msgs::FollowJointTrajectoryAction>& ac,
-                              trajectory_msgs::JointTrajectory& joint_trajectory,
-                              Data_config& parameters,
-                              std::ofstream &output_file);
-
-bool go_to_initial_position(Data_config& parameters, actionlib::SimpleActionClient<control_msgs::FollowJointTrajectoryAction> &ac);
-
-
-std::vector<double>& extract_certain_arm_joints_values(Data_config& parameters, std::string arm);
+void record_feedback(Data_config &parameters,
+                     control_msgs::FollowJointTrajectoryActionFeedback& feedback,
+                     std::ofstream& output_file);
 
 /**
  * @brief Check if all joint trajectory points are valid (in terms of self collision)
@@ -57,6 +71,14 @@ bool is_trajectory_valid(Data_config& parameters);
  * @return vector of joint values and fill in the parameters the corresponding joint values
 **/
 std::vector<double>& extract_arm_joints_values(Data_config& parameters);
+
+/**
+ * @brief Same as extract_arm_joints_values() but user can specify the arm here
+ * @param Data_config class, and
+ * @param arm choice (left, or right)
+ * @return vector of joint values and fill in the parameters the corresponding joint values
+**/
+std::vector<double>& extract_certain_arm_joints_values(Data_config& parameters, std::string arm);
 
 /**
  * @brief Read a text file that include joint waypoints and construct the joint trajectory_msgs

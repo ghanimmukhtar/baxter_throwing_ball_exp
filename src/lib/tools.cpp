@@ -9,8 +9,7 @@ typedef vector <record_t> data_t;
 //The function that will execute the trajectory
 bool execute_joint_trajectory(actionlib::SimpleActionClient<control_msgs::FollowJointTrajectoryAction>& ac,
                               trajectory_msgs::JointTrajectory& joint_trajectory,
-                              Data_config &parameters,
-                              ofstream& output_file){
+                              Data_config &parameters){
     if (!ac.waitForServer(ros::Duration(2.0)))
     {
         ROS_ERROR("Could not connect to action server");
@@ -21,28 +20,12 @@ bool execute_joint_trajectory(actionlib::SimpleActionClient<control_msgs::Follow
     goal.trajectory = joint_trajectory;
     goal.goal_time_tolerance = ros::Duration(1.0);
     ac.sendGoal(goal);
-    //feedback loop
-    std::vector<double> last_desired_position = parameters.get_baxter_arm_joint_values(parameters.get_baxter_arm()),
-            last_actual_position = parameters.get_baxter_arm_joint_values(parameters.get_baxter_arm());
-    while(!ac.getState().isDone()){
-        if(!parameters.get_joint_action_feedback().feedback.desired.positions.empty()){
-            if(largest_difference(last_desired_position, parameters.get_joint_action_feedback().feedback.desired.positions) > parameters.get_epsilon()){
-                last_desired_position = parameters.get_joint_action_feedback().feedback.desired.positions;
-                last_actual_position = parameters.get_joint_action_feedback().feedback.actual.positions;
+    /*if(!parameters.get_first())
+        parameters.set_first(true);*/
+    if(!parameters.get_record())
+        parameters.set_record(true);
 
-                output_file << parameters.get_joint_action_feedback().feedback.header.stamp.toSec()
-                               << ",";
-                for(size_t i = 0; i < last_desired_position.size(); ++i)
-                    output_file << last_desired_position[i] << ",";
-                for(size_t i = 0; i < last_actual_position.size(); ++i)
-                    output_file << last_actual_position[i] << ",";
-                output_file << "\n";
-            }
-
-        }
-
-    }
-    if (ac.waitForResult(goal.trajectory.points[goal.trajectory.points.size()-1].time_from_start + ros::Duration(5)))
+    if (ac.waitForResult(goal.trajectory.points[goal.trajectory.points.size()-1].time_from_start + ros::Duration(10)))
     {
         ROS_INFO("Action server reported successful execution");
         return true;
@@ -52,27 +35,50 @@ bool execute_joint_trajectory(actionlib::SimpleActionClient<control_msgs::Follow
     }
 }
 
+//this function record the feedback of the joint server when executing a trajectory
+void record_feedback(Data_config& parameters,
+                     control_msgs::FollowJointTrajectoryActionFeedback& feedback,
+                     ofstream& output_file){
+    if(parameters.get_record() && parameters.get_joint_trajectory().points.size() > 3){
+        if(!feedback.feedback.desired.positions.empty()){
+            /*if(parameters.get_first()){
+                parameters.set_start_time(feedback.feedback.error.time_from_start);
+                parameters.set_first(false);
+            }*/
+            //output_file << feedback.feedback.header.stamp.toSec() - parameters.get_start_time()
+            output_file << feedback.feedback.error.time_from_start
+            << ",";
+            for(size_t i = 0; i < feedback.feedback.desired.positions.size(); ++i)
+                output_file << feedback.feedback.desired.positions[i] << ",";
+            for(size_t i = 0; i < feedback.feedback.actual.positions.size(); ++i)
+                output_file << feedback.feedback.actual.positions[i] << ",";
+            output_file << "\n";
+        }
+
+    }
+}
+
 //go to the first position in the trajectory to be executed
 bool go_to_initial_position(Data_config& parameters, actionlib::SimpleActionClient<control_msgs::FollowJointTrajectoryAction>& ac){
     //construct a trajectory with two point (current point and desired point, first point in the trajectory)
     trajectory_msgs::JointTrajectory my_joint_trajectory;
     my_joint_trajectory.joint_names = parameters.get_baxter_arm_joints_names(parameters.get_baxter_arm());
     if(!parameters.get_joint_trajectory().points.empty()){
-            for(size_t i = 0; i < 2; i++){
-                trajectory_msgs::JointTrajectoryPoint pt;
-                //first point is current point
-                if(i == 0)
-                    pt.positions = extract_arm_joints_values(parameters);
-                //second point is the first point in the desired trajectory
-                else
-                    pt.positions = parameters.get_joint_trajectory().points[0].positions;
-                pt.velocities.resize(parameters.get_joint_trajectory().points[0].positions.size(), 0.0);
-                pt.accelerations.resize(parameters.get_joint_trajectory().points[0].positions.size(), 0.0);
-                pt.effort.resize(parameters.get_joint_trajectory().points[0].positions.size(), 0.0);
-                pt.time_from_start = ros::Duration(3*i);
-                my_joint_trajectory.points.push_back(pt);
-            }
+        for(size_t i = 0; i < 2; i++){
+            trajectory_msgs::JointTrajectoryPoint pt;
+            //first point is current point
+            if(i == 0)
+                pt.positions = extract_arm_joints_values(parameters);
+            //second point is the first point in the desired trajectory
+            else
+                pt.positions = parameters.get_joint_trajectory().points[0].positions;
+            pt.velocities.resize(parameters.get_joint_trajectory().points[0].positions.size(), 0.0);
+            pt.accelerations.resize(parameters.get_joint_trajectory().points[0].positions.size(), 0.0);
+            pt.effort.resize(parameters.get_joint_trajectory().points[0].positions.size(), 0.0);
+            pt.time_from_start = ros::Duration(3*i);
+            my_joint_trajectory.points.push_back(pt);
         }
+    }
     if (!ac.waitForServer(ros::Duration(2.0)))
     {
         ROS_ERROR("Could not connect to action server");
@@ -84,7 +90,7 @@ bool go_to_initial_position(Data_config& parameters, actionlib::SimpleActionClie
     goal.goal_time_tolerance = ros::Duration(1.0);
     ac.sendGoal(goal);
 
-    if (ac.waitForResult(goal.trajectory.points[goal.trajectory.points.size()-1].time_from_start + ros::Duration(5)))
+    if (ac.waitForResult(goal.trajectory.points[goal.trajectory.points.size()-1].time_from_start + ros::Duration(1)))
     {
         ROS_INFO("Action server reported successful execution");
         return true;
@@ -114,9 +120,11 @@ bool is_trajectory_valid(Data_config& parameters){
     robot_state::RobotState robot_state_holder(parameters.get_baxter_robot_model());
     //this is for simulation
     //robot_state_holder.setVariableValues(parameters.get_joint_state());
+
     //this is real robot
     robot_state_holder.setVariablePositions(right_joint_names, extract_certain_arm_joints_values(parameters, "right_arm"));
     robot_state_holder.setVariablePositions(left_joint_names, extract_certain_arm_joints_values(parameters, "left_arm"));
+
     for(unsigned i = 0; i < parameters.get_joint_trajectory().points.size(); i++){
         collision_result.clear();
         robot_state_holder.setVariablePositions(parameters.get_baxter_arm_joints_names(parameters.get_baxter_arm()),
@@ -273,8 +281,8 @@ void construct_joint_trajectory_from_vector(trajectory_msgs::JointTrajectory& my
             for(size_t i = 0; i < raw_joint_traj.size(); i++){
                 trajectory_msgs::JointTrajectoryPoint pt;
                 pt.positions = {raw_joint_traj[i][1], raw_joint_traj[i][2], raw_joint_traj[i][3],
-                               raw_joint_traj[i][4], raw_joint_traj[i][5], raw_joint_traj[i][6],
-                               raw_joint_traj[i][7]};
+                                raw_joint_traj[i][4], raw_joint_traj[i][5], raw_joint_traj[i][6],
+                                raw_joint_traj[i][7]};
                 pt.velocities.resize(raw_joint_traj[i].size(), 0.0);
                 pt.accelerations.resize(raw_joint_traj[i].size(), 0.0);
                 pt.effort.resize(raw_joint_traj[i].size(), 0.0);
@@ -312,7 +320,7 @@ void construct_joint_trajectory_from_file(std::ifstream& text_file, Data_config&
     }
     text_file.close();
     //delete doupled values
-    optimize_vector_of_vectors(data, parameters);
+    //optimize_vector_of_vectors(data, parameters);
 
     //for printing all joints values
     /*for(unsigned i = 0; i < data.size(); i++){

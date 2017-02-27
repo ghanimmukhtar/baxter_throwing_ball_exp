@@ -22,8 +22,9 @@ struct Parameters {
     sensor_msgs::JointState my_joint_state;
     std::vector<double> right_arm_joints, left_arm_joints;
     control_msgs::FollowJointTrajectoryActionFeedback right_joint_action_feedback;
-    double dt, epsilon, rate;
+    double dt, epsilon, rate, start_time;
     robot_model::RobotModelPtr robot_model;
+    bool first = false, record = false;
 };
 
 class Data_config{
@@ -87,8 +88,20 @@ public:
         return params.epsilon;
     }
 
+    double& get_start_time(){
+        return params.start_time;
+    }
+
     robot_model::RobotModelPtr& get_baxter_robot_model(){
         return params.robot_model;
+    }
+
+    bool get_first(){
+        return params.first;
+    }
+
+    bool get_record(){
+        return params.record;
     }
 
     ///setters
@@ -121,6 +134,18 @@ public:
 
     void set_rate(double& rate){
         params.rate = rate;
+    }
+
+    void set_start_time(double start){
+        params.start_time = start;
+    }
+
+    void set_first(bool first){
+        params.first = first;
+    }
+
+    void set_record(bool record){
+        params.record = record;
     }
 
     void set_baxter_robot_model(robot_model::RobotModelPtr& robot_model_baxter){
