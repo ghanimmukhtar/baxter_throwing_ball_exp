@@ -107,9 +107,16 @@ bool is_trajectory_valid(Data_config& parameters){
     std::ostream acm_matrix(&fb);
 
     acm.print(acm_matrix);
+    std::string arm = "left_arm";
+    std::vector<std::string> left_joint_names = parameters.get_baxter_arm_joints_names(arm);
+    arm = "right_arm";
+    std::vector<std::string> right_joint_names = parameters.get_baxter_arm_joints_names(arm);;
     robot_state::RobotState robot_state_holder(parameters.get_baxter_robot_model());
-
-    robot_state_holder.setVariableValues(parameters.get_joint_state());
+    //this is for simulation
+    //robot_state_holder.setVariableValues(parameters.get_joint_state());
+    //this is real robot
+    robot_state_holder.setVariablePositions(right_joint_names, extract_certain_arm_joints_values(parameters, "right_arm"));
+    robot_state_holder.setVariablePositions(left_joint_names, extract_certain_arm_joints_values(parameters, "left_arm"));
     for(unsigned i = 0; i < parameters.get_joint_trajectory().points.size(); i++){
         collision_result.clear();
         robot_state_holder.setVariablePositions(parameters.get_baxter_arm_joints_names(parameters.get_baxter_arm()),
@@ -156,6 +163,22 @@ std::vector<double>& extract_arm_joints_values(Data_config& parameters){
     }
     parameters.set_baxter_arm_joint_values(joint_values, parameters.get_baxter_arm());
     return parameters.get_baxter_arm_joint_values(parameters.get_baxter_arm());
+}
+
+std::vector<double>& extract_certain_arm_joints_values(Data_config& parameters, std::string arm){
+    std::vector<std::string> joint_names;
+    std::vector<double> joint_values;
+    //std::vector<int> joint_index;
+    joint_names = parameters.get_baxter_arm_joints_names(arm);
+
+    for(unsigned i = 0; i < joint_names.size(); ++i){
+        joint_values.push_back(parameters.get_joint_state().position[distance(parameters.get_joint_state().name.begin(),
+                                                                              find(parameters.get_joint_state().name.begin(),
+                                                                                   parameters.get_joint_state().name.end(),
+                                                                                   joint_names[i]))]);
+    }
+    parameters.set_baxter_arm_joint_values(joint_values, arm);
+    return parameters.get_baxter_arm_joint_values(arm);
 }
 
 //record arm joint positions into a file
