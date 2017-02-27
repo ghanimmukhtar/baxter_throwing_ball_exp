@@ -40,6 +40,10 @@ bool execute_joint_trajectory(actionlib::SimpleActionClient<control_msgs::Follow
                               std::ofstream &output_file);
 
 bool go_to_initial_position(Data_config& parameters, actionlib::SimpleActionClient<control_msgs::FollowJointTrajectoryAction> &ac);
+
+
+std::vector<double>& extract_certain_arm_joints_values(Data_config& parameters, std::string arm);
+
 /**
  * @brief Check if all joint trajectory points are valid (in terms of self collision)
  * @param Data_config class

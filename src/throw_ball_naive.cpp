@@ -27,7 +27,7 @@ int main(int argc, char **argv)
 
     std::string input_file_path, feedback_file_path, baxter_arm;
     double dt;
-    bool record = false;
+    bool record = false, execute = false;
     n.getParam("input_file_path", input_file_path);
     n.getParam("feedback_file_path", feedback_file_path);
     n.getParam("baxter_arm", baxter_arm);
@@ -35,6 +35,7 @@ int main(int argc, char **argv)
     n.getParam("rate", parameters.get_rate());
     n.getParam("record", record);
     n.getParam("epsilon", parameters.get_epsilon());
+    n.getParam("execute", execute);
 
     parameters.set_baxter_arm(baxter_arm);
     parameters.set_dt(dt);
@@ -63,8 +64,10 @@ int main(int argc, char **argv)
 
 
         if(is_trajectory_valid(parameters)){
-            go_to_initial_position(parameters, ac);
-            execute_joint_trajectory(ac, parameters.get_joint_trajectory(), parameters, output_file);
+            if(execute){
+                go_to_initial_position(parameters, ac);
+                execute_joint_trajectory(ac, parameters.get_joint_trajectory(), parameters, output_file);
+            }
         }
         else
             ROS_ERROR("trajectory not valid !!!!!!!!!");
