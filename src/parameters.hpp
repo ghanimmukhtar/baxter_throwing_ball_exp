@@ -24,7 +24,8 @@ struct Parameters {
     control_msgs::FollowJointTrajectoryActionFeedback right_joint_action_feedback;
     double dt, epsilon, rate, start_time;
     robot_model::RobotModelPtr robot_model;
-    bool first = false, record = false;
+    bool first = false, record = false, velocity_option = false;
+    int point_count;
 };
 
 class Data_config{
@@ -104,6 +105,14 @@ public:
         return params.record;
     }
 
+    bool& get_velocity_option(){
+        return params.velocity_option;
+    }
+
+    int& get_point_count(){
+        return params.point_count;
+    }
+
     ///setters
     void set_joint_traj_point(trajectory_msgs::JointTrajectoryPoint& my_joint_traj_point){
         params.pt = my_joint_traj_point;
@@ -148,6 +157,10 @@ public:
         params.record = record;
     }
 
+    void set_velocity_option(bool velocity_option){
+        params.velocity_option = velocity_option;
+    }
+
     void set_baxter_robot_model(robot_model::RobotModelPtr& robot_model_baxter){
         params.robot_model = robot_model_baxter;
     }
@@ -158,6 +171,10 @@ public:
 
     void set_epsilon(double& epsilon){
         params.epsilon = epsilon;
+    }
+
+    void set_point_count(int count){
+        params.point_count = count;
     }
 };
 

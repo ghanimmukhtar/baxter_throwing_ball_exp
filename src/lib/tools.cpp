@@ -9,7 +9,29 @@ typedef vector <record_t> data_t;
 //The function that will execute the trajectory
 bool execute_joint_trajectory(actionlib::SimpleActionClient<control_msgs::FollowJointTrajectoryAction>& ac,
                               trajectory_msgs::JointTrajectory& joint_trajectory,
-                              Data_config &parameters){
+                              Data_config &parameters, ros::Publisher &gripper_pub){
+    //calibrate the gripper and grasp the object
+    baxter_core_msgs::EndEffectorCommand calibrate_command;
+    calibrate_command.id = 65538;
+    calibrate_command.command = "calibrate";
+    gripper_pub.publish(calibrate_command);
+
+    std::cin.ignore();
+
+    //open gripper command "release"
+    calibrate_command.command = "release";
+    gripper_pub.publish(calibrate_command);
+
+    std::cin.ignore();
+
+    //close gripper command "grip"
+    calibrate_command.command = "grip";
+    gripper_pub.publish(calibrate_command);
+
+    std::cin.ignore();
+
+    //
+    parameters.set_point_count(0.0);
     if (!ac.waitForServer(ros::Duration(2.0)))
     {
         ROS_ERROR("Could not connect to action server");
@@ -17,14 +39,24 @@ bool execute_joint_trajectory(actionlib::SimpleActionClient<control_msgs::Follow
     }
 
     control_msgs::FollowJointTrajectoryGoal goal;
+
     goal.trajectory = joint_trajectory;
     goal.goal_time_tolerance = ros::Duration(1.0);
     ac.sendGoal(goal);
-    /*if(!parameters.get_first())
-        parameters.set_first(true);*/
     if(!parameters.get_record())
         parameters.set_record(true);
 
+    while(!ac.getState().isDone())
+        if(joint_trajectory.points[(int)joint_trajectory.points.size() - 1].time_from_start.toSec()
+                - parameters.get_joint_action_feedback().feedback.actual.time_from_start.toSec() < 1.0){
+            //open gripper command "release"
+            /*ROS_ERROR_STREAM("the feedback time from start is: "
+                                     << parameters.get_joint_action_feedback().feedback.actual.time_from_start);
+                    ROS_ERROR_STREAM("the time from start for the middle point is: "
+                                     << joint_trajectory.points[(int)joint_trajectory.points.size()/2].time_from_start);*/
+            calibrate_command.command = "release";
+            gripper_pub.publish(calibrate_command);
+        }
 
     if (ac.waitForResult(goal.trajectory.points[goal.trajectory.points.size()-1].time_from_start + ros::Duration(10)))
     {
@@ -46,13 +78,24 @@ void record_feedback(Data_config& parameters,
                 parameters.set_start_time(feedback.feedback.error.time_from_start);
                 parameters.set_first(false);
             }*/
+            parameters.set_point_count(parameters.get_point_count() + 1);
             //output_file << feedback.feedback.header.stamp.toSec() - parameters.get_start_time()
+            //record time of recording
             output_file << feedback.feedback.error.time_from_start
-            << ",";
+                        << ",";
+            //record positions: desired and actual
             for(size_t i = 0; i < feedback.feedback.desired.positions.size(); ++i)
                 output_file << feedback.feedback.desired.positions[i] << ",";
             for(size_t i = 0; i < feedback.feedback.actual.positions.size(); ++i)
                 output_file << feedback.feedback.actual.positions[i] << ",";
+
+            //record velocities: desired and actual
+            if(parameters.get_velocity_option()){
+                for(size_t i = 0; i < feedback.feedback.desired.velocities.size(); ++i)
+                    output_file << feedback.feedback.desired.velocities[i] << ",";
+                for(size_t i = 0; i < feedback.feedback.actual.velocities.size(); ++i)
+                    output_file << feedback.feedback.actual.velocities[i] << ",";
+            }
             output_file << "\n";
         }
 
@@ -91,6 +134,7 @@ bool go_to_initial_position(Data_config& parameters, actionlib::SimpleActionClie
     goal.goal_time_tolerance = ros::Duration(1.0);
     ac.sendGoal(goal);
 
+    while(!ac.getState().isDone());
     if (ac.waitForResult(goal.trajectory.points[goal.trajectory.points.size()-1].time_from_start + ros::Duration(1)))
     {
         ROS_INFO("Action server reported successful execution");
@@ -274,7 +318,10 @@ void optimize_vector_of_vectors(std::vector<std::vector<double>>& vector_to_opti
     vector_to_optimize = working_copy;
 }
 
-void construct_joint_trajectory_from_vector(trajectory_msgs::JointTrajectory& my_joint_trajectory, data_t& raw_joint_traj, double& dt){
+void construct_joint_trajectory_from_vector(trajectory_msgs::JointTrajectory& my_joint_trajectory,
+                                            data_t& raw_joint_traj,
+                                            double& dt,
+                                            bool& velocity_option){
     double t_ = 0.0;
     if(!raw_joint_traj.empty()){
         //if it is sangsu kind of files (15 variables per line) do the following loop
@@ -284,7 +331,12 @@ void construct_joint_trajectory_from_vector(trajectory_msgs::JointTrajectory& my
                 pt.positions = {raw_joint_traj[i][1], raw_joint_traj[i][2], raw_joint_traj[i][3],
                                 raw_joint_traj[i][4], raw_joint_traj[i][5], raw_joint_traj[i][6],
                                 raw_joint_traj[i][7]};
-                pt.velocities.resize(raw_joint_traj[i].size(), 0.0);
+                if(velocity_option)
+                    pt.velocities = {raw_joint_traj[i][8], raw_joint_traj[i][9], raw_joint_traj[i][10],
+                                     raw_joint_traj[i][11], raw_joint_traj[i][12], raw_joint_traj[i][13],
+                                     raw_joint_traj[i][14]};
+                else
+                    pt.velocities.resize(raw_joint_traj[i].size(), 0.0);
                 pt.accelerations.resize(raw_joint_traj[i].size(), 0.0);
                 pt.effort.resize(raw_joint_traj[i].size(), 0.0);
                 pt.time_from_start = ros::Duration(raw_joint_traj[i][0]);
@@ -334,7 +386,8 @@ void construct_joint_trajectory_from_file(std::ifstream& text_file, Data_config&
 
     trajectory_msgs::JointTrajectory my_joint_trajectory;
     my_joint_trajectory.joint_names = parameters.get_baxter_arm_joints_names(parameters.get_baxter_arm());
-    construct_joint_trajectory_from_vector(my_joint_trajectory, data, parameters.get_dt());
+    construct_joint_trajectory_from_vector(my_joint_trajectory, data, parameters.get_dt(), parameters.get_velocity_option());
+    my_joint_trajectory.header.frame_id = "real_trajectory";
 
     //set the trajectory in the parameters
     parameters.set_joint_trajectory(my_joint_trajectory);
