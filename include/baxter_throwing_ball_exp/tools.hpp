@@ -18,6 +18,7 @@
 #include <actionlib/client/simple_action_client.h>
 #include <baxter_core_msgs/EndpointState.h>
 #include <baxter_core_msgs/JointCommand.h>
+#include <baxter_core_msgs/EndEffectorCommand.h>
 #include <geometry_msgs/PoseStamped.h>
 #include <moveit/robot_model_loader/robot_model_loader.h>
 #include <moveit/trajectory_processing/iterative_time_parameterization.h>
@@ -37,7 +38,8 @@
 **/
 bool execute_joint_trajectory(actionlib::SimpleActionClient<control_msgs::FollowJointTrajectoryAction>& ac,
                               trajectory_msgs::JointTrajectory& joint_trajectory,
-                              Data_config& parameters);
+                              Data_config& parameters,
+                              ros::Publisher& gripper_pub);
 
 /**
  * @brief Guide the arm to the initial position of the trajectory to be executed later, using joint action server
@@ -104,7 +106,9 @@ double largest_difference(std::vector<double> &first, std::vector<double> &secon
  * @return Nothing but fill in the parameters the joint trajectory_msgs to be followed
 **/
 void construct_joint_trajectory_from_vector(trajectory_msgs::JointTrajectory& my_joint_trajectory,
-                                            std::vector<std::vector<double> >& raw_joint_traj, double& dt);
+                                            std::vector<std::vector<double> >& raw_joint_traj,
+                                            double& dt,
+                                            bool& velocity_option);
 
 /**
  * @brief Read a text file that includes joint waypoints and construct the joint trajectory_msgs

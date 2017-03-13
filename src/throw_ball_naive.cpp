@@ -9,8 +9,10 @@ void joint_state_callback(sensor_msgs::JointState jo_state){
 }
 
 void feedback_callback(control_msgs::FollowJointTrajectoryActionFeedback feedback){
-    parameters.set_joint_action_feedback(feedback);
-    record_feedback(parameters, feedback, output_file);
+    if(parameters.get_record()){
+        parameters.set_joint_action_feedback(feedback);
+        record_feedback(parameters, feedback, output_file);
+    }
 }
 
 int main(int argc, char **argv)
@@ -23,6 +25,7 @@ int main(int argc, char **argv)
     ros::Subscriber right_joint_sub = n.subscribe<sensor_msgs::JointState>("/robot/joint_states", 1, joint_state_callback);
     ros::Subscriber feedback_sub = n.subscribe<control_msgs::FollowJointTrajectoryActionFeedback>("/robot/limb/right/follow_joint_trajectory/feedback", 1, feedback_callback);
     ros::Publisher pub_msg_right = n.advertise<baxter_core_msgs::JointCommand>("/robot/limb/right/joint_command",1);
+    ros::Publisher gripper_pub = n.advertise<baxter_core_msgs::EndEffectorCommand>("/robot/end_effector/right_gripper/command", true);
 
     ros::AsyncSpinner my_spinner(1);
     my_spinner.start();
@@ -38,6 +41,7 @@ int main(int argc, char **argv)
     n.getParam("record", record);
     n.getParam("epsilon", parameters.get_epsilon());
     n.getParam("execute", execute);
+    n.getParam("velocity_option", parameters.get_velocity_option());
 
     parameters.set_baxter_arm(baxter_arm);
     parameters.set_dt(dt);
@@ -68,7 +72,7 @@ int main(int argc, char **argv)
         if(is_trajectory_valid(parameters)){
             if(execute){
                 go_to_initial_position(parameters, ac);
-                execute_joint_trajectory(ac, parameters.get_joint_trajectory(), parameters);
+                execute_joint_trajectory(ac, parameters.get_joint_trajectory(), parameters, gripper_pub);
             }
         }
         else
