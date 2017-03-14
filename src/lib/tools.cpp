@@ -10,26 +10,27 @@ typedef vector <record_t> data_t;
 bool execute_joint_trajectory(actionlib::SimpleActionClient<control_msgs::FollowJointTrajectoryAction>& ac,
                               trajectory_msgs::JointTrajectory& joint_trajectory,
                               Data_config &parameters, ros::Publisher &gripper_pub){
-    //calibrate the gripper and grasp the object
     baxter_core_msgs::EndEffectorCommand calibrate_command;
-    calibrate_command.id = 65538;
-    calibrate_command.command = "calibrate";
-    gripper_pub.publish(calibrate_command);
+    //if on the real robot calibrate the gripper and grasp the object
+    if(!parameters.get_simulation()){
+        calibrate_command.id = 65538;
+        calibrate_command.command = "calibrate";
+        gripper_pub.publish(calibrate_command);
 
-    std::cin.ignore();
+        std::cin.ignore();
 
-    //open gripper command "release"
-    calibrate_command.command = "release";
-    gripper_pub.publish(calibrate_command);
+        //open gripper command "release"
+        calibrate_command.command = "release";
+        gripper_pub.publish(calibrate_command);
 
-    std::cin.ignore();
+        std::cin.ignore();
 
-    //close gripper command "grip"
-    calibrate_command.command = "grip";
-    gripper_pub.publish(calibrate_command);
+        //close gripper command "grip"
+        calibrate_command.command = "grip";
+        gripper_pub.publish(calibrate_command);
 
-    std::cin.ignore();
-
+        std::cin.ignore();
+    }
     //
     parameters.set_point_count(0.0);
     if (!ac.waitForServer(ros::Duration(2.0)))
@@ -46,18 +47,19 @@ bool execute_joint_trajectory(actionlib::SimpleActionClient<control_msgs::Follow
     if(!parameters.get_record())
         parameters.set_record(true);
 
-    while(!ac.getState().isDone())
-        if(joint_trajectory.points[(int)joint_trajectory.points.size() - 1].time_from_start.toSec()
-                - parameters.get_joint_action_feedback().feedback.actual.time_from_start.toSec() < 1.0){
-            //open gripper command "release"
-            /*ROS_ERROR_STREAM("the feedback time from start is: "
+    if(!parameters.get_simulation()){
+        while(!ac.getState().isDone())
+            if(joint_trajectory.points[(int)joint_trajectory.points.size() - 1].time_from_start.toSec()
+                    - parameters.get_joint_action_feedback().feedback.actual.time_from_start.toSec() < 1.0){
+                //open gripper command "release"
+                /*ROS_ERROR_STREAM("the feedback time from start is: "
                                      << parameters.get_joint_action_feedback().feedback.actual.time_from_start);
                     ROS_ERROR_STREAM("the time from start for the middle point is: "
                                      << joint_trajectory.points[(int)joint_trajectory.points.size()/2].time_from_start);*/
-            calibrate_command.command = "release";
-            gripper_pub.publish(calibrate_command);
-        }
-
+                calibrate_command.command = "release";
+                gripper_pub.publish(calibrate_command);
+            }
+    }
     if (ac.waitForResult(goal.trajectory.points[goal.trajectory.points.size()-1].time_from_start + ros::Duration(10)))
     {
         ROS_INFO("Action server reported successful execution");
@@ -321,7 +323,8 @@ void optimize_vector_of_vectors(std::vector<std::vector<double>>& vector_to_opti
 void construct_joint_trajectory_from_vector(trajectory_msgs::JointTrajectory& my_joint_trajectory,
                                             data_t& raw_joint_traj,
                                             double& dt,
-                                            bool& velocity_option){
+                                            bool& velocity_option,
+                                            bool& acceleration_option){
     double t_ = 0.0;
     if(!raw_joint_traj.empty()){
         //if it is sangsu kind of files (15 variables per line) do the following loop
@@ -331,13 +334,18 @@ void construct_joint_trajectory_from_vector(trajectory_msgs::JointTrajectory& my
                 pt.positions = {raw_joint_traj[i][1], raw_joint_traj[i][2], raw_joint_traj[i][3],
                                 raw_joint_traj[i][4], raw_joint_traj[i][5], raw_joint_traj[i][6],
                                 raw_joint_traj[i][7]};
-                if(velocity_option)
+                if(velocity_option && acceleration_option){
                     pt.velocities = {raw_joint_traj[i][8], raw_joint_traj[i][9], raw_joint_traj[i][10],
                                      raw_joint_traj[i][11], raw_joint_traj[i][12], raw_joint_traj[i][13],
                                      raw_joint_traj[i][14]};
-                else
+                    pt.accelerations = {raw_joint_traj[i][15], raw_joint_traj[i][16], raw_joint_traj[i][17],
+                                        raw_joint_traj[i][18], raw_joint_traj[i][19], raw_joint_traj[i][20],
+                                        raw_joint_traj[i][21]};
+                }
+                else{
                     pt.velocities.resize(raw_joint_traj[i].size(), 0.0);
-                pt.accelerations.resize(raw_joint_traj[i].size(), 0.0);
+                    pt.accelerations.resize(raw_joint_traj[i].size(), 0.0);
+                }
                 pt.effort.resize(raw_joint_traj[i].size(), 0.0);
                 pt.time_from_start = ros::Duration(raw_joint_traj[i][0]);
                 my_joint_trajectory.points.push_back(pt);
@@ -386,7 +394,9 @@ void construct_joint_trajectory_from_file(std::ifstream& text_file, Data_config&
 
     trajectory_msgs::JointTrajectory my_joint_trajectory;
     my_joint_trajectory.joint_names = parameters.get_baxter_arm_joints_names(parameters.get_baxter_arm());
-    construct_joint_trajectory_from_vector(my_joint_trajectory, data, parameters.get_dt(), parameters.get_velocity_option());
+    construct_joint_trajectory_from_vector(my_joint_trajectory, data, parameters.get_dt(),
+                                           parameters.get_velocity_option(),
+                                           parameters.get_acceleration_option());
     my_joint_trajectory.header.frame_id = "real_trajectory";
 
     //set the trajectory in the parameters

@@ -42,6 +42,11 @@ int main(int argc, char **argv)
     n.getParam("epsilon", parameters.get_epsilon());
     n.getParam("execute", execute);
     n.getParam("velocity_option", parameters.get_velocity_option());
+    n.getParam("acceleration_option", parameters.get_acceleration_option());
+    n.getParam("simulation", parameters.get_simulation());
+    n.getParam("check_collision", parameters.get_check_collision());
+    n.getParam("start_trajectory_number", parameters.get_start_trajectory_number());
+    n.getParam("last_trajectory_number", parameters.get_last_trajectory_number());
 
     parameters.set_baxter_arm(baxter_arm);
     parameters.set_dt(dt);
@@ -61,25 +66,37 @@ int main(int argc, char **argv)
         output_file.close();
     }
     else{
-        //test reading and executing a trajectory
-        std::ifstream input_file(input_file_path, std::ios_base::in);
+        for(int i = parameters.get_start_trajectory_number(); i <= parameters.get_last_trajectory_number(); i++){
 
-        output_file.open(feedback_file_path, std::ofstream::out);
+            //test reading and executing a trajectory
+            std::ifstream input_file(input_file_path + std::to_string(i) + ".txt", std::ios_base::in);
 
-        construct_joint_trajectory_from_file(input_file, parameters);
+            output_file.open(feedback_file_path, std::ofstream::out);
+
+            construct_joint_trajectory_from_file(input_file, parameters);
 
 
-        if(is_trajectory_valid(parameters)){
-            if(execute){
+            if(parameters.get_check_collision()){
+                if(is_trajectory_valid(parameters)){
+                    if(execute){
+                        go_to_initial_position(parameters, ac);
+                        execute_joint_trajectory(ac, parameters.get_joint_trajectory(), parameters, gripper_pub);
+                    }
+                }
+                else
+                    ROS_ERROR("trajectory not valid !!!!!!!!!");
+            }
+            else if(execute){
                 go_to_initial_position(parameters, ac);
                 execute_joint_trajectory(ac, parameters.get_joint_trajectory(), parameters, gripper_pub);
             }
+
+            input_file.close();
+            output_file.close();
+            ROS_INFO_STREAM("trajectory size is: " << parameters.get_joint_trajectory().points.size());
+            ROS_WARN_STREAM("finished trajectory: " << i << " press enter for next trajectory");
+            std::cin.ignore();
         }
-        else
-            ROS_ERROR("trajectory not valid !!!!!!!!!");
-        input_file.close();
-        output_file.close();
-        ROS_INFO_STREAM("trajectory size is: " << parameters.get_joint_trajectory().points.size());
     }
     return 0;
 }

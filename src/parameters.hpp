@@ -24,8 +24,8 @@ struct Parameters {
     control_msgs::FollowJointTrajectoryActionFeedback right_joint_action_feedback;
     double dt, epsilon, rate, start_time;
     robot_model::RobotModelPtr robot_model;
-    bool first = false, record = false, velocity_option = false;
-    int point_count;
+    bool first = false, record = false, velocity_option = false, acceleration_option = false, simulation = true, check_collision = true;
+    int point_count, start_trajectory_number = 1, last_trajectory_number = 1;
 };
 
 class Data_config{
@@ -109,8 +109,28 @@ public:
         return params.velocity_option;
     }
 
+    bool& get_acceleration_option(){
+        return params.acceleration_option;
+    }
+
+    bool& get_simulation(){
+        return params.simulation;
+    }
+
+    bool& get_check_collision(){
+        return params.check_collision;
+    }
+
     int& get_point_count(){
         return params.point_count;
+    }
+
+    int& get_start_trajectory_number(){
+        return params.start_trajectory_number;
+    }
+
+    int& get_last_trajectory_number(){
+        return params.last_trajectory_number;
     }
 
     ///setters
@@ -161,6 +181,18 @@ public:
         params.velocity_option = velocity_option;
     }
 
+    void set_acceleration_option(bool acceleration_option){
+        params.acceleration_option = acceleration_option;
+    }
+
+    void set_simulation(bool simulation){
+        params.simulation = simulation;
+    }
+
+    void set_check_collision(bool collision){
+        params.check_collision = collision;
+    }
+
     void set_baxter_robot_model(robot_model::RobotModelPtr& robot_model_baxter){
         params.robot_model = robot_model_baxter;
     }
@@ -175,6 +207,14 @@ public:
 
     void set_point_count(int count){
         params.point_count = count;
+    }
+
+    void set_start_trajectory_number(int traj_number){
+        params.start_trajectory_number = traj_number;
+    }
+
+    void set_last_trajectory_number(int traj_number){
+        params.last_trajectory_number = traj_number;
     }
 };
 

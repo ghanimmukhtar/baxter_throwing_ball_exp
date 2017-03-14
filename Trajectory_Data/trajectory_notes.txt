@@ -1,0 +1,64 @@
+Trajectory 1: executable, long distance in the back of the robot and high eef end position
+Trajectroy 2: partially executable with error in joint right_w1
+Trajectroy 3: execute without check collision, seems safe, go down then up, maybe we should move the table
+Trajectroy 4: execute without check collision, seems safe, and similar to the previous one
+Trajectory 5: execute without check collision, seems safe, and similarish to the previous one
+Trajectroy 6: execute without check collision, seems safe, and similar to the previous one
+Trajectory 7: execute without check collision, seems safe, and different, it goes back then up
+Trajectroy 8: execute without check collision, seems safe, and similarish to traj 5
+Trajectroy 9: execute without check collision, seems safe, and similarish to traj 3
+Trajectroy 10: seems in selfcollision with pedestal/right_gripper, execute without check collision
+Trajectroy 11: execute without check collision, seems safe, and similar to the previous one
+Trajectroy 12: execute without check collision, seems safe, and similar to the previous one
+Trajectroy 13: execute without check collision, seems safe, and similar to the previous one
+Trajectroy 14: execute without check collision, seems safe, and similar to the previous one
+Trajectroy 15: execute without check collision, seems safe, and similar to the previous one
+Trajectroy 16: execute without check collision, seems safe, and similar to the previous one
+Trajectroy 17: execute without check collision, seems safe, and similar to the previous one
+Trajectroy 18: execute without check collision, seems safe, and similar to the previous one
+Trajectroy 19: execute without check collision, seems safe, and similar to the previous one
+Trajectroy 20: execute without check collision, seems safe, and similar to the previous one
+Trajectroy 21: execute without check collision, seems safe, and similar to the previous one
+Trajectroy 22: execute without check collision, seems safe, and similar to the previous one
+Trajectroy 23: execute without check collision, seems safe, and similar to the previous one
+Trajectroy 24: execute without check collision, seems safe, and similar to the previous one
+Trajectroy 25: execute without check collision, seems safe, and similar to the previous one
+Trajectroy 26: execute without check collision, seems safe, and similar to the previous one
+Trajectroy 27: execute without check collision, seems safe, and different
+Trajectroy 28: execute without check collision, seems safe, and similar to traj 11-26
+Trajectroy 29: execute without check collision, seems safe, and similar to the previous one
+Trajectroy 30: execute without check collision, seems safe, and similar to traj 27
+Trajectroy 31: execute without check collision, seems safe, and similar to the previous one
+Trajectroy 32: execute without check collision, seems safe, and similar to traj 11-26
+Trajectroy 33: execute without check collision, seems safe, and similar to the previous one
+Trajectroy 34: execute without check collision, seems safe, and similar to the previous one
+Trajectroy 35: execute without check collision, seems safe, and similar to the previous one
+Trajectroy 36: execute without check collision, seems safe, and similar to the previous one
+Trajectroy 37: execute without check collision, seems safe, and similar to the previous one
+Trajectroy 38: execute without check collision, seems safe, and similar to the previous one
+Trajectroy 39: execute without check collision, seems safe, and similarish to the previous one
+Trajectroy 40: execute without check collision, seems safe, and similar to the previous one
+Trajectroy 41: execute without check collision, seems safe, and similar to the previous one
+Trajectroy 42: execute without check collision, seems safe, and similar to the previous one
+Trajectroy 43: execute without check collision, seems safe, and similar to traj 27
+Trajectroy 44: execute without check collision, seems safe, and similar to traj 42
+Trajectroy 45: partially executable with error in joint right_w2
+Trajectroy 46: execute without check collision, seems safe, and similar to traj 42
+Trajectroy 47: partially executable with error in joint right_w2
+Trajectroy 48: execute without check collision, seems safe, and similar to traj 42
+Trajectroy 49: execute without check collision, seems safe, and similar to the previous one
+Trajectroy 50: execute without check collision, seems safe, and similar to traj 27
+Trajectroy 51: execute without check collision, seems safe, and similar to the previous one
+Trajectroy 52: execute without check collision, seems safe, and similar to the previous one
+Trajectroy 53: execute without check collision, seems safe, and similar to the previous one
+Trajectroy 54: partially executable with error in joint right_w2
+Trajectroy 55: execute without check collision, long and high distance behind the robot, and very different
+Trajectroy 56: execute without check collision, seems safe, and similar to the previous one
+Trajectroy 57: execute without check collision, seems safe, and similar to the previous one
+Trajectroy 58: execute without check collision, seems safe, and similarish to the previous one
+Trajectroy 59: execute without check collision, seems safe, and similar to the previous one
+Trajectroy 60: execute without check collision, seems safe, and similar to the previous one
+Trajectroy 61: execute without check collision, seems safe, and similarish to the previous one
+Trajectroy 62: execute without check collision, seems safe, and similar to the previous one
+Trajectroy 63: execute without check collision, seems safe, and similar to the previous one
+Trajectroy 64: execute without check collision, collided with the left arm, and very different

@@ -108,7 +108,8 @@ double largest_difference(std::vector<double> &first, std::vector<double> &secon
 void construct_joint_trajectory_from_vector(trajectory_msgs::JointTrajectory& my_joint_trajectory,
                                             std::vector<std::vector<double> >& raw_joint_traj,
                                             double& dt,
-                                            bool& velocity_option);
+                                            bool& velocity_option,
+                                            bool& acceleration_option);
 
 /**
  * @brief Read a text file that includes joint waypoints and construct the joint trajectory_msgs
