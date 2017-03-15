@@ -9,6 +9,10 @@
 #include <moveit/robot_state/conversions.h>
 #include <moveit/robot_model_loader/robot_model_loader.h>
 #include <control_msgs/FollowJointTrajectoryActionFeedback.h>
+#include <baxter_core_msgs/SolvePositionIK.h>
+#include <gazebo_msgs/GetModelState.h>
+#include <gazebo_msgs/DeleteModel.h>
+#include <gazebo_msgs/SpawnModel.h>
 #include <tf/tf.h>
 
 struct Parameters {
@@ -26,6 +30,19 @@ struct Parameters {
     robot_model::RobotModelPtr robot_model;
     bool first = false, record = false, velocity_option = false, acceleration_option = false, simulation = true, check_collision = true;
     int point_count, start_trajectory_number = 1, last_trajectory_number = 1;
+
+    ros::ServiceClient gazebo_spawn_clt, gazebo_model_state, gazebo_model_delete, baxter_right_arm_ik_solver;
+
+    std::string package_name = "baxter_throwing_ball_exp";
+    geometry_msgs::Pose table_pose, ball_pose;
+
+    geometry_msgs::Pose l_eef_pose, r_eef_pose;
+    Eigen::VectorXd l_eef_rpy_pose, r_eef_rpy_pose;
+    Eigen::Vector3d l_eef_position, r_eef_position;
+    Eigen::Vector3d l_eef_rpy_orientation, r_eef_rpy_orientation;
+
+    int right_gripper_id, left_gripper_id;
+    bool grap_ball_simulation = false;
 };
 
 class Data_config{
@@ -36,6 +53,26 @@ public:
         robot_model_loader::RobotModelLoader robot_model_loader("robot_description");
         params.robot_model = robot_model_loader.getModel();
     }*/
+
+    void configure_object_pose(){
+        //table
+        params.table_pose.position.x = 0.7;
+        params.table_pose.position.y = 0.0;
+        params.table_pose.position.z = -0.93;
+        tf::Quaternion tmp_orientation;
+        tmp_orientation.setRPY(0.0,
+                               0.0,
+                               M_PI/2.0);
+        params.table_pose.orientation.w = tmp_orientation.getW();
+        params.table_pose.orientation.x = tmp_orientation.getX();
+        params.table_pose.orientation.y = tmp_orientation.getY();
+        params.table_pose.orientation.z = tmp_orientation.getZ();
+        //ball
+        params.ball_pose.position.x = 0.5;
+        params.ball_pose.position.y = -0.1;
+        params.ball_pose.position.z = -0.1;
+        params.ball_pose.orientation.w = 1.0;
+    }
 
     void create_model(){
         robot_model_loader::RobotModelLoader robot_model_loader("robot_description");
@@ -133,6 +170,76 @@ public:
         return params.last_trajectory_number;
     }
 
+    ros::ServiceClient& get_gazebo_model_spawner(){
+        return params.gazebo_spawn_clt;
+    }
+
+    ros::ServiceClient& get_gazebo_model_state_client(){
+        return params.gazebo_model_state;
+    }
+
+    ros::ServiceClient& get_gazebo_model_delete_client(){
+        return params.gazebo_model_delete;
+    }
+
+    ros::ServiceClient& get_baxter_right_arm_ik(){
+        return params.baxter_right_arm_ik_solver;
+    }
+
+    std::string& get_package_name(){
+        return params.package_name;
+    }
+
+    geometry_msgs::Pose& get_object_pose(std::string object){
+        if(strcmp(object.c_str(), "table") == 0)
+            return params.table_pose;
+        else if(strcmp(object.c_str(), "ball") == 0)
+            return params.ball_pose;
+
+        //else
+          //  ROS_WARN("please provide string argument with value of: 'table' or 'ball'");
+        //return NULL;
+    }
+
+    geometry_msgs::Pose& get_eef_pose(const std::string gripper){
+        if(strcmp(gripper.c_str(), "left_gripper") == 0)
+            return params.l_eef_pose;
+        else
+            return params.r_eef_pose;
+    }
+
+    Eigen::VectorXd& get_eef_rpy_pose(const std::string gripper){
+        if(strcmp(gripper.c_str(), "left_gripper") == 0)
+            return params.l_eef_rpy_pose;
+        else
+            return params.r_eef_rpy_pose;
+    }
+
+    Eigen::Vector3d& get_eef_position(const std::string gripper){
+        if(strcmp(gripper.c_str(), "left_gripper") == 0)
+            return params.l_eef_position;
+        else
+            return params.r_eef_position;
+    }
+
+    Eigen::Vector3d& get_eef_rpy_orientation(const std::string gripper){
+        if(strcmp(gripper.c_str(), "left_gripper") == 0)
+            return params.l_eef_rpy_orientation;
+        else
+            return params.r_eef_rpy_orientation;
+    }
+
+    int& get_gripper_id(const std::string gripper){
+        if(strcmp(gripper.c_str(), "left_gripper") == 0)
+            return params.left_gripper_id;
+        else
+            return params.right_gripper_id;
+    }
+
+    bool get_grap_ball_simulation(){
+        return params.grap_ball_simulation;
+    }
+
     ///setters
     void set_joint_traj_point(trajectory_msgs::JointTrajectoryPoint& my_joint_traj_point){
         params.pt = my_joint_traj_point;
@@ -215,6 +322,60 @@ public:
 
     void set_last_trajectory_number(int traj_number){
         params.last_trajectory_number = traj_number;
+    }
+
+    void set_gazebo_model_spawner(ros::ServiceClient& spawner){
+        params.gazebo_spawn_clt = spawner;
+    }
+
+    void set_gazebo_model_state_clt(ros::ServiceClient& state){
+        params.gazebo_model_state = state;
+    }
+
+    void set_gazebo_model_delete_clt(ros::ServiceClient& deleter){
+        params.gazebo_model_delete = deleter;
+    }
+
+    void set_baxter_right_arm_ik(ros::ServiceClient& solver){
+        params.baxter_right_arm_ik_solver = solver;
+    }
+
+    void set_package_name(std::string& pkg_name){
+        params.package_name = pkg_name;
+    }
+    void set_eef_rpy_pose(Eigen::VectorXd& eef_rpy_pose, const std::string gripper){
+        if(strcmp(gripper.c_str(), "left_gripper") == 0)
+            params.l_eef_rpy_pose = eef_rpy_pose;
+        else
+            params.r_eef_rpy_pose = eef_rpy_pose;
+    }
+
+    void set_eef_position(Eigen::Vector3d& eef_position, const std::string gripper){
+        if(strcmp(gripper.c_str(), "left_gripper") == 0)
+            params.l_eef_position = eef_position;
+        else
+            params.r_eef_position = eef_position;
+    }
+
+    void set_eef_rpy_orientation(Eigen::Vector3d& eef_rpy_orientation, const std::string gripper){
+        if(strcmp(gripper.c_str(), "left_gripper") == 0)
+            params.l_eef_rpy_orientation = eef_rpy_orientation;
+        else
+            params.r_eef_rpy_orientation = eef_rpy_orientation;
+    }
+
+    void set_eef_pose(geometry_msgs::Pose& eef_pose, const std::string gripper){
+        if(strcmp(gripper.c_str(), "left_gripper") == 0)
+            params.l_eef_pose = eef_pose;
+        else
+            params.r_eef_pose = eef_pose;
+    }
+
+    void set_gripper_id(int id, const std::string gripper){
+        if(strcmp(gripper.c_str(), "left_gripper") == 0)
+            params.left_gripper_id = id;
+        else
+            params.right_gripper_id = id;
     }
 };
 

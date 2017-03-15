@@ -60,6 +60,14 @@ bool execute_joint_trajectory(actionlib::SimpleActionClient<control_msgs::Follow
                 gripper_pub.publish(calibrate_command);
             }
     }
+    else if(parameters.get_grap_ball_simulation())
+    {
+        while(!ac.getState().isDone())
+            if(joint_trajectory.points[(int)joint_trajectory.points.size() - 1].time_from_start.toSec()
+                    - parameters.get_joint_action_feedback().feedback.actual.time_from_start.toSec() < 1.0)
+                open_right_gripper(parameters, gripper_pub);
+
+    }
     if (ac.waitForResult(goal.trajectory.points[goal.trajectory.points.size()-1].time_from_start + ros::Duration(10)))
     {
         ROS_INFO("Action server reported successful execution");
@@ -104,27 +112,74 @@ void record_feedback(Data_config& parameters,
     }
 }
 
-//go to the first position in the trajectory to be executed
-bool go_to_initial_position(Data_config& parameters, actionlib::SimpleActionClient<control_msgs::FollowJointTrajectoryAction>& ac){
-    //construct a trajectory with two point (current point and desired point, first point in the trajectory)
-    trajectory_msgs::JointTrajectory my_joint_trajectory;
-    my_joint_trajectory.joint_names = parameters.get_baxter_arm_joints_names(parameters.get_baxter_arm());
-    if(!parameters.get_joint_trajectory().points.empty()){
-        for(size_t i = 0; i < 2; i++){
-            trajectory_msgs::JointTrajectoryPoint pt;
-            //first point is current point
-            if(i == 0)
-                pt.positions = extract_arm_joints_values(parameters);
-            //second point is the first point in the desired trajectory
-            else
-                pt.positions = parameters.get_joint_trajectory().points[0].positions;
-            pt.velocities.resize(parameters.get_joint_trajectory().points[0].positions.size(), 0.0);
-            pt.accelerations.resize(parameters.get_joint_trajectory().points[0].positions.size(), 0.0);
-            pt.effort.resize(parameters.get_joint_trajectory().points[0].positions.size(), 0.0);
-            pt.time_from_start = ros::Duration(3*i);
-            my_joint_trajectory.points.push_back(pt);
+
+/**
+ * @brief the function to spawn objects
+ * @param name of the object to spawn, and its pose and the service client
+ * @param argv
+ * @return bool that sees if it succeed in spawning the model in gazebo or not
+ */
+bool spawn_model(const std::string model_to_spawn,
+                 Data_config& parameters){
+    parameters.configure_object_pose();
+    gazebo_msgs::SpawnModel my_model;
+    //char buffer[MAXPATHLEN];
+    char* pPath;
+    pPath = getenv ("PWD");
+    //pPath = "/home/mukhtar/git/catkin_ws";
+    std::string model_file_location;
+    model_file_location.append(pPath);
+    model_file_location.append("/src/" + parameters.get_package_name() + "/world/");
+    model_file_location.append(model_to_spawn);
+    model_file_location.append("/model.sdf");
+    //ROS_INFO_STREAM("file location is: " << model_file_location.c_str());
+    std::ifstream model_file(model_file_location.c_str());
+    if (model_file){
+        std::string line;
+        while (!model_file.eof()) {
+            std::getline(model_file,line);
+            my_model.request.model_xml+=line;
         }
+        model_file.close();
+        my_model.request.model_name = model_to_spawn;
+        my_model.request.reference_frame = "base";
+        my_model.request.initial_pose = parameters.get_object_pose(model_to_spawn);
+        parameters.get_gazebo_model_spawner().call(my_model);
+        return my_model.response.success;
+    } else {
+        ROS_ERROR_STREAM("File " << model_file_location << " not found while spawning");
+        exit(-1);
     }
+}
+
+/**
+ * @brief remove one model
+ * @param a
+ * @param a
+ * @return bool that
+ */
+bool delete_model(std::string model_name,
+                  Data_config& parameters){
+    //std::string current_model = model_name;
+    gazebo_msgs::DeleteModel delete_model;
+    delete_model.request.model_name = model_name;
+    /*if (std::strcmp(current_model.c_str(), "table") == 0){
+        delete_model.request.model_name = "table";
+    } else if (std::strcmp(current_model.c_str(), "cube") == 0){
+        delete_model.request.model_name = "cube";
+    } else if (std::strcmp(current_model.c_str(), "cylinder") == 0){
+        delete_model.request.model_name = "cylinder";
+    } else {
+        ROS_ERROR_STREAM("remove_object method : unknown model " << current_model);
+        return false;
+    }*/
+    parameters.get_gazebo_model_delete_client().call(delete_model);
+
+    return true;
+}
+
+bool move_with_action_server(actionlib::SimpleActionClient<control_msgs::FollowJointTrajectoryAction>& ac,
+                             trajectory_msgs::JointTrajectory& my_joint_trajectory){
     if (!ac.waitForServer(ros::Duration(2.0)))
     {
         ROS_ERROR("Could not connect to action server");
@@ -147,9 +202,163 @@ bool go_to_initial_position(Data_config& parameters, actionlib::SimpleActionClie
     }
 }
 
+trajectory_msgs::JointTrajectoryPoint get_neutral_point(){
+    trajectory_msgs::JointTrajectoryPoint pt;
+    pt.positions = {0.08, -1.0, 1.19, 1.94, -0.67, 1.03, 0.50};
+    pt.velocities.resize(7, 0.0);
+    pt.accelerations.resize(7, 0.0);
+    pt.effort.resize(7, 0.0);
+    return pt;
+}
+
+geometry_msgs::Pose get_ball_pose(Data_config& parameters){
+    gazebo_msgs::GetModelState model_state;
+    model_state.request.relative_entity_name = "base";
+    model_state.request.model_name = "ball";
+    parameters.get_gazebo_model_state_client().call(model_state);
+    return model_state.response.pose;
+}
+
+void locate_eef_pose(geometry_msgs::Pose &eef_feedback, Data_config& parameters, const std::string gripper){
+
+    Eigen::VectorXd end_effector_pose(6);
+    geometry_msgs::Pose eef_pose_quat = eef_feedback;
+    tf::Quaternion eef_rpy_orientation;
+
+    tf::quaternionMsgToTF(eef_pose_quat.orientation, eef_rpy_orientation);
+
+    double roll, yaw, pitch;
+    tf::Matrix3x3 m(eef_rpy_orientation);
+    m.getRPY(roll, pitch, yaw);
+    Eigen::Vector3d eef_current_position;
+    Eigen::Vector3d eef_current_orientation;
+    eef_current_position << eef_pose_quat.position.x,
+            eef_pose_quat.position.y,
+            eef_pose_quat.position.z;
+
+    eef_current_orientation <<    roll,
+            pitch,
+            yaw;
+    end_effector_pose << eef_pose_quat.position.x,
+            eef_pose_quat.position.y,
+            eef_pose_quat.position.z,
+            roll,
+            pitch,
+            yaw;
+    parameters.set_eef_position(eef_current_position, gripper);
+    parameters.set_eef_rpy_orientation(eef_current_orientation, gripper);
+    parameters.set_eef_pose(eef_pose_quat, gripper);
+    parameters.set_eef_rpy_pose(end_effector_pose, gripper);
+    //ROS_WARN_STREAM("locating eef stuff gave for position: " << eef_current_position << "\n and for orientation: " << eef_current_orientation);
+}
+
+trajectory_msgs::JointTrajectoryPoint get_grapping_point(Data_config& parameters){
+    geometry_msgs::PoseStamped my_desired_pose;
+    my_desired_pose.header.frame_id = "/base";
+    my_desired_pose.pose = get_ball_pose(parameters);
+    ROS_ERROR_STREAM("ball position is: x = " << my_desired_pose.pose.position.x <<
+                     ", y = " << my_desired_pose.pose.position.y <<
+                     ", and z = " << my_desired_pose.pose.position.z);
+    my_desired_pose.pose.orientation = parameters.get_eef_pose("right_gripper").orientation;
+    baxter_core_msgs::SolvePositionIK::Request req;
+    baxter_core_msgs::SolvePositionIK::Response res;
+    req.pose_stamp.push_back(my_desired_pose);
+    parameters.get_baxter_right_arm_ik().call(req, res);
+    trajectory_msgs::JointTrajectoryPoint pt;
+    pt.positions = res.joints[0].position;
+    ROS_ERROR("trying to print solution to grap the ball");
+    for(size_t i = 0; i < res.joints[0].position.size(); i++)
+        ROS_ERROR_STREAM("solution to grap the ball give for joint: " << i << " angle: " << res.joints[0].position[i]);
+    pt.velocities.resize(7, 0.0);
+    pt.accelerations.resize(7, 0.0);
+    pt.effort.resize(7, 0.0);
+    return pt;
+}
+
+void construct_two_points_trajectory(Data_config& parameters,
+                                     trajectory_msgs::JointTrajectory& my_joint_trajectory,
+                                     trajectory_msgs::JointTrajectoryPoint second_pt){
+    for(size_t i = 0; i < 2; i++){
+        trajectory_msgs::JointTrajectoryPoint pt;
+        //first point is current point
+        if(i == 0)
+            pt.positions = extract_arm_joints_values(parameters);
+        //second point is given
+        else
+            pt.positions = second_pt.positions;
+        pt.velocities.resize(second_pt.positions.size(), 0.0);
+        pt.accelerations.resize(second_pt.positions.size(), 0.0);
+        pt.effort.resize(second_pt.positions.size(), 0.0);
+        pt.time_from_start = ros::Duration(3*i);
+        my_joint_trajectory.points.push_back(pt);
+    }
+}
+
+void open_right_gripper(Data_config& parameters, ros::Publisher& gripper_pub){
+    baxter_core_msgs::EndEffectorCommand gripper_command;
+    gripper_command.id = parameters.get_gripper_id("right_gripper");
+    gripper_command.args = "{position: 100.0}";
+    gripper_command.command = "go";
+    gripper_pub.publish(gripper_command);
+}
+
+void close_right_gripper(Data_config& parameters, ros::Publisher& gripper_pub){
+    baxter_core_msgs::EndEffectorCommand gripper_command;
+    gripper_command.id = parameters.get_gripper_id("right_gripper");
+    gripper_command.args = "{position: 0.0}";
+    gripper_command.command = "go";
+    gripper_pub.publish(gripper_command);
+}
+
+//go to the first position in the trajectory to be executed
+bool go_to_initial_position(Data_config& parameters,
+                            actionlib::SimpleActionClient<control_msgs::FollowJointTrajectoryAction>& ac,
+                            ros::Publisher &gripper_pub){
+    //move to neutral position so we can spawn objects
+    trajectory_msgs::JointTrajectory my_joint_trajectory;
+    my_joint_trajectory.joint_names = parameters.get_baxter_arm_joints_names(parameters.get_baxter_arm());
+    if(parameters.get_simulation()){
+        //first spawn the table and the ball in a known position then grap the ball and go to the first point
+        construct_two_points_trajectory(parameters, my_joint_trajectory, get_neutral_point());
+        if(!move_with_action_server(ac, my_joint_trajectory))
+            return false;
+
+        if(parameters.get_grap_ball_simulation()){
+            spawn_model("table", parameters);
+            spawn_model("ball", parameters);
+
+            //std::cin.ignore();
+            //grap the ball
+
+            my_joint_trajectory.points.clear();
+            construct_two_points_trajectory(parameters, my_joint_trajectory, get_grapping_point(parameters));
+            open_right_gripper(parameters, gripper_pub);
+            ROS_WARN_STREAM("joints trajectory size to grap the ball is: " << my_joint_trajectory.points.size());
+            if(!move_with_action_server(ac, my_joint_trajectory))
+                return false;
+            close_right_gripper(parameters, gripper_pub);
+        }
+    }
+
+
+    //construct a trajectory with two point (current point and desired point, first point in the trajectory)
+
+    if(!parameters.get_joint_trajectory().points.empty()){
+        my_joint_trajectory.points.clear();
+        construct_two_points_trajectory(parameters, my_joint_trajectory, parameters.get_joint_trajectory().points[0]);
+    }
+    if(!move_with_action_server(ac, my_joint_trajectory))
+        return false;
+
+    if(parameters.get_grap_ball_simulation())
+        delete_model("table", parameters);
+    return true;
+}
+
 //check all trajectory points for selfcollision
 bool is_trajectory_valid(Data_config& parameters){
     planning_scene::PlanningScene planning_scene(parameters.get_baxter_robot_model());
+    //planning_scene.
     collision_detection::CollisionRequest req;
     req.contacts = true;
     req.max_contacts = 100;

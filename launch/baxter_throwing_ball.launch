@@ -5,7 +5,7 @@
   <arg name="left_electric_gripper" default="true"/>
   <arg name="left_tip_name" default="left_gripper"/>
   <arg name="right_tip_name" default="right_gripper"/>
-
+  <arg name="gripper_id" default="131073"/> 
   <!--param name="robot_description"
       command="$(find xacro)/xacro.py inorder $(find baxter_description)/urdf/baxter.urdf.xacro" unless="$(arg record)"/-->
 
@@ -27,9 +27,10 @@
   <param name="dt" value="0.006"/>
   <param name="rate" value="100"/>
   <param name="start_trajectory_number" value="1"/>
-  <param name="last_trajectory_number" value="64"/>
+  <param name="last_trajectory_number" value="8"/>
   <param name="epsilon" value="0.01"/>
   <param name="record" value="$(arg record)"/>
+  <param name="gripper_id" value="$(arg gripper_id)"/>
   <param name="execute" value="true"/>
   <param name="velocity_option" value="true"/>
   <param name="acceleration_option" value="true"/>

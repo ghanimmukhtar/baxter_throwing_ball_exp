@@ -15,6 +15,11 @@ void feedback_callback(control_msgs::FollowJointTrajectoryActionFeedback feedbac
     }
 }
 
+//call back that register end effector pose and rearrange the orientation in RPY
+void right_eef_Callback(baxter_core_msgs::EndpointState r_eef_feedback){
+    locate_eef_pose(r_eef_feedback.pose, parameters, "right_gripper");
+}
+
 int main(int argc, char **argv)
 {
     ros::init(argc, argv, "throw_ball_naive");
@@ -24,7 +29,6 @@ int main(int argc, char **argv)
     actionlib::SimpleActionClient<control_msgs::FollowJointTrajectoryAction> ac("/robot/limb/right/follow_joint_trajectory", true);
     ros::Subscriber right_joint_sub = n.subscribe<sensor_msgs::JointState>("/robot/joint_states", 1, joint_state_callback);
     ros::Subscriber feedback_sub = n.subscribe<control_msgs::FollowJointTrajectoryActionFeedback>("/robot/limb/right/follow_joint_trajectory/feedback", 1, feedback_callback);
-    ros::Publisher pub_msg_right = n.advertise<baxter_core_msgs::JointCommand>("/robot/limb/right/joint_command",1);
     ros::Publisher gripper_pub = n.advertise<baxter_core_msgs::EndEffectorCommand>("/robot/end_effector/right_gripper/command", true);
 
     ros::AsyncSpinner my_spinner(1);
@@ -47,6 +51,18 @@ int main(int argc, char **argv)
     n.getParam("check_collision", parameters.get_check_collision());
     n.getParam("start_trajectory_number", parameters.get_start_trajectory_number());
     n.getParam("last_trajectory_number", parameters.get_last_trajectory_number());
+    n.getParam("gripper_id", parameters.get_gripper_id("right_gripper"));
+
+    if(parameters.get_simulation()){
+        ros::ServiceClient spawner = n.serviceClient<gazebo_msgs::SpawnModel> ("/gazebo/spawn_sdf_model");
+        ros::ServiceClient state = n.serviceClient<gazebo_msgs::GetModelState>("/gazebo/get_model_state");
+        ros::ServiceClient deleter = n.serviceClient<gazebo_msgs::DeleteModel>("/gazebo/delete_model");
+        ros::ServiceClient ik = n.serviceClient<baxter_core_msgs::SolvePositionIK>("/ExternalTools/right/PositionKinematicsNode/IKService");
+        parameters.set_gazebo_model_spawner(spawner);
+        parameters.set_gazebo_model_state_clt(state);
+        parameters.set_gazebo_model_delete_clt(deleter);
+        parameters.set_baxter_right_arm_ik(ik);
+    }
 
     parameters.set_baxter_arm(baxter_arm);
     parameters.set_dt(dt);
@@ -79,7 +95,7 @@ int main(int argc, char **argv)
             if(parameters.get_check_collision()){
                 if(is_trajectory_valid(parameters)){
                     if(execute){
-                        go_to_initial_position(parameters, ac);
+                        go_to_initial_position(parameters, ac, gripper_pub);
                         execute_joint_trajectory(ac, parameters.get_joint_trajectory(), parameters, gripper_pub);
                     }
                 }
@@ -87,12 +103,14 @@ int main(int argc, char **argv)
                     ROS_ERROR("trajectory not valid !!!!!!!!!");
             }
             else if(execute){
-                go_to_initial_position(parameters, ac);
+                go_to_initial_position(parameters, ac, gripper_pub);
                 execute_joint_trajectory(ac, parameters.get_joint_trajectory(), parameters, gripper_pub);
             }
 
             input_file.close();
             output_file.close();
+            if(parameters.get_grap_ball_simulation())
+                delete_model("ball", parameters);
             ROS_INFO_STREAM("trajectory size is: " << parameters.get_joint_trajectory().points.size());
             ROS_WARN_STREAM("finished trajectory: " << i << " press enter for next trajectory");
             std::cin.ignore();

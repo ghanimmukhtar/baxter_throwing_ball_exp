@@ -48,7 +48,8 @@ bool execute_joint_trajectory(actionlib::SimpleActionClient<control_msgs::Follow
  * @return true if guiding of the arm is successful, false otherwise
 **/
 bool go_to_initial_position(Data_config& parameters,
-                            actionlib::SimpleActionClient<control_msgs::FollowJointTrajectoryAction> &ac);
+                            actionlib::SimpleActionClient<control_msgs::FollowJointTrajectoryAction> &ac,
+                            ros::Publisher& gripper_pub);
 
 /**
  * @brief Execute a trajectory given as joint trajectory using joint action server
@@ -118,6 +119,21 @@ void construct_joint_trajectory_from_vector(trajectory_msgs::JointTrajectory& my
  * @return Nothing but fill in the parameters the joint trajectory_msgs to be followed
 **/
 void construct_joint_trajectory_from_file(std::ifstream &text_file, Data_config& parameters);
+
+//to add comments later
+bool move_with_action_server(actionlib::SimpleActionClient<control_msgs::FollowJointTrajectoryAction>& ac,
+                             trajectory_msgs::JointTrajectory& my_joint_trajectory);
+trajectory_msgs::JointTrajectoryPoint get_neutral_point();
+geometry_msgs::Pose get_ball_pose(Data_config& parameters);
+void locate_eef_pose(geometry_msgs::Pose &eef_feedback, Data_config& parameters, const std::string gripper);
+trajectory_msgs::JointTrajectoryPoint get_grapping_point(Data_config& parameters);
+void construct_two_points_trajectory(Data_config& parameters,
+                                     trajectory_msgs::JointTrajectory& my_joint_trajectory,
+                                     trajectory_msgs::JointTrajectoryPoint second_pt);
+void open_right_gripper(Data_config& parameters, ros::Publisher& gripper_pub);
+void close_right_gripper(Data_config& parameters, ros::Publisher& gripper_pub);
+bool delete_model(std::string model_name,
+                   Data_config& parameters);
 
 #endif /* __LIB_MOVEMENT_H__ */
 
