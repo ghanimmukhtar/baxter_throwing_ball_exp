@@ -9,7 +9,8 @@ void joint_state_callback(sensor_msgs::JointState jo_state){
 }
 
 void feedback_callback(control_msgs::FollowJointTrajectoryActionFeedback feedback){
-    if(parameters.get_record()){
+    //parameters.set_joint_action_feedback(feedback);
+    if(parameters.get_start_record_feedback()){
         parameters.set_joint_action_feedback(feedback);
         record_feedback(parameters, feedback, output_file);
     }
@@ -27,6 +28,7 @@ int main(int argc, char **argv)
 
     //subscribers
     actionlib::SimpleActionClient<control_msgs::FollowJointTrajectoryAction> ac("/robot/limb/right/follow_joint_trajectory", true);
+    ros::Subscriber sub_r_eef_msg = n.subscribe<baxter_core_msgs::EndpointState>("/robot/limb/right/endpoint_state", 10, right_eef_Callback);
     ros::Subscriber right_joint_sub = n.subscribe<sensor_msgs::JointState>("/robot/joint_states", 1, joint_state_callback);
     ros::Subscriber feedback_sub = n.subscribe<control_msgs::FollowJointTrajectoryActionFeedback>("/robot/limb/right/follow_joint_trajectory/feedback", 1, feedback_callback);
     ros::Publisher gripper_pub = n.advertise<baxter_core_msgs::EndEffectorCommand>("/robot/end_effector/right_gripper/command", true);
@@ -43,6 +45,7 @@ int main(int argc, char **argv)
     n.getParam("dt", dt);
     n.getParam("rate", parameters.get_rate());
     n.getParam("record", record);
+    n.getParam("grap_simulation", parameters.get_grap_ball_simulation());
     n.getParam("epsilon", parameters.get_epsilon());
     n.getParam("execute", execute);
     n.getParam("velocity_option", parameters.get_velocity_option());
@@ -111,6 +114,8 @@ int main(int argc, char **argv)
             output_file.close();
             if(parameters.get_grap_ball_simulation())
                 delete_model("ball", parameters);
+            parameters.set_start_record_feedback(false);
+            parameters.set_record(false);
             ROS_INFO_STREAM("trajectory size is: " << parameters.get_joint_trajectory().points.size());
             ROS_WARN_STREAM("finished trajectory: " << i << " press enter for next trajectory");
             std::cin.ignore();

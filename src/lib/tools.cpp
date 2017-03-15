@@ -39,11 +39,14 @@ bool execute_joint_trajectory(actionlib::SimpleActionClient<control_msgs::Follow
         return false;
     }
 
+    //usleep(2e6);
     control_msgs::FollowJointTrajectoryGoal goal;
 
     goal.trajectory = joint_trajectory;
     goal.goal_time_tolerance = ros::Duration(1.0);
     ac.sendGoal(goal);
+    if(!parameters.get_start_record_feedback())
+        parameters.set_start_record_feedback(true);
     if(!parameters.get_record())
         parameters.set_record(true);
 
@@ -62,11 +65,16 @@ bool execute_joint_trajectory(actionlib::SimpleActionClient<control_msgs::Follow
     }
     else if(parameters.get_grap_ball_simulation())
     {
-        while(!ac.getState().isDone())
-            if(joint_trajectory.points[(int)joint_trajectory.points.size() - 1].time_from_start.toSec()
-                    - parameters.get_joint_action_feedback().feedback.actual.time_from_start.toSec() < 1.0)
-                open_right_gripper(parameters, gripper_pub);
 
+        while(!ac.getState().isDone()){
+            double time_diff = joint_trajectory.points[(int)joint_trajectory.points.size() - 1].time_from_start.toSec()
+                    - parameters.get_joint_action_feedback().feedback.actual.time_from_start.toSec();
+            if(time_diff < 1.0 && time_diff > 0.0){
+                //ROS_ERROR_STREAM("the condition seems true cause the difference is: "
+                             //    << time_diff);
+                open_right_gripper(parameters, gripper_pub);
+            }
+}
     }
     if (ac.waitForResult(goal.trajectory.points[goal.trajectory.points.size()-1].time_from_start + ros::Duration(10)))
     {
@@ -256,19 +264,23 @@ trajectory_msgs::JointTrajectoryPoint get_grapping_point(Data_config& parameters
     geometry_msgs::PoseStamped my_desired_pose;
     my_desired_pose.header.frame_id = "/base";
     my_desired_pose.pose = get_ball_pose(parameters);
-    ROS_ERROR_STREAM("ball position is: x = " << my_desired_pose.pose.position.x <<
+    /*ROS_ERROR_STREAM("ball position is: x = " << my_desired_pose.pose.position.x <<
                      ", y = " << my_desired_pose.pose.position.y <<
-                     ", and z = " << my_desired_pose.pose.position.z);
+                     ", and z = " << my_desired_pose.pose.position.z);*/
     my_desired_pose.pose.orientation = parameters.get_eef_pose("right_gripper").orientation;
+    /*ROS_ERROR_STREAM("right eef orientation is: x = " << my_desired_pose.pose.orientation.x <<
+                     ", y = " << my_desired_pose.pose.orientation.y <<
+                     ", z = " << my_desired_pose.pose.orientation.z <<
+                     ", and w = " << my_desired_pose.pose.orientation.w);*/
     baxter_core_msgs::SolvePositionIK::Request req;
     baxter_core_msgs::SolvePositionIK::Response res;
     req.pose_stamp.push_back(my_desired_pose);
     parameters.get_baxter_right_arm_ik().call(req, res);
     trajectory_msgs::JointTrajectoryPoint pt;
     pt.positions = res.joints[0].position;
-    ROS_ERROR("trying to print solution to grap the ball");
+    /*ROS_ERROR("trying to print solution to grap the ball");
     for(size_t i = 0; i < res.joints[0].position.size(); i++)
-        ROS_ERROR_STREAM("solution to grap the ball give for joint: " << i << " angle: " << res.joints[0].position[i]);
+        ROS_ERROR_STREAM("solution to grap the ball give for joint: " << i << " angle: " << res.joints[0].position[i]);*/
     pt.velocities.resize(7, 0.0);
     pt.accelerations.resize(7, 0.0);
     pt.effort.resize(7, 0.0);
@@ -327,6 +339,7 @@ bool go_to_initial_position(Data_config& parameters,
             spawn_model("table", parameters);
             spawn_model("ball", parameters);
 
+            usleep(1e6);
             //std::cin.ignore();
             //grap the ball
 
@@ -336,7 +349,9 @@ bool go_to_initial_position(Data_config& parameters,
             ROS_WARN_STREAM("joints trajectory size to grap the ball is: " << my_joint_trajectory.points.size());
             if(!move_with_action_server(ac, my_joint_trajectory))
                 return false;
+
             close_right_gripper(parameters, gripper_pub);
+            usleep(1e5);
         }
     }
 

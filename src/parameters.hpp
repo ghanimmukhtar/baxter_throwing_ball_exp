@@ -28,7 +28,7 @@ struct Parameters {
     control_msgs::FollowJointTrajectoryActionFeedback right_joint_action_feedback;
     double dt, epsilon, rate, start_time;
     robot_model::RobotModelPtr robot_model;
-    bool first = false, record = false, velocity_option = false, acceleration_option = false, simulation = true, check_collision = true;
+    bool first = false, start_record_feedback = false, record = false, velocity_option = false, acceleration_option = false, simulation = true, check_collision = true;
     int point_count, start_trajectory_number = 1, last_trajectory_number = 1;
 
     ros::ServiceClient gazebo_spawn_clt, gazebo_model_state, gazebo_model_delete, baxter_right_arm_ik_solver;
@@ -42,7 +42,7 @@ struct Parameters {
     Eigen::Vector3d l_eef_rpy_orientation, r_eef_rpy_orientation;
 
     int right_gripper_id, left_gripper_id;
-    bool grap_ball_simulation = false;
+    bool grap_ball_simulation = true;
 };
 
 class Data_config{
@@ -68,7 +68,7 @@ public:
         params.table_pose.orientation.y = tmp_orientation.getY();
         params.table_pose.orientation.z = tmp_orientation.getZ();
         //ball
-        params.ball_pose.position.x = 0.5;
+        params.ball_pose.position.x = 0.65;
         params.ball_pose.position.y = -0.1;
         params.ball_pose.position.z = -0.1;
         params.ball_pose.orientation.w = 1.0;
@@ -140,6 +140,10 @@ public:
 
     bool get_record(){
         return params.record;
+    }
+
+    bool get_start_record_feedback(){
+        return params.start_record_feedback;
     }
 
     bool& get_velocity_option(){
@@ -236,7 +240,7 @@ public:
             return params.right_gripper_id;
     }
 
-    bool get_grap_ball_simulation(){
+    bool& get_grap_ball_simulation(){
         return params.grap_ball_simulation;
     }
 
@@ -282,6 +286,10 @@ public:
 
     void set_record(bool record){
         params.record = record;
+    }
+
+    void set_start_record_feedback(bool record){
+        params.start_record_feedback = record;
     }
 
     void set_velocity_option(bool velocity_option){
@@ -376,6 +384,10 @@ public:
             params.left_gripper_id = id;
         else
             params.right_gripper_id = id;
+    }
+
+    void set_grap_ball_simulation(bool grap){
+        params.grap_ball_simulation = grap;
     }
 };
 

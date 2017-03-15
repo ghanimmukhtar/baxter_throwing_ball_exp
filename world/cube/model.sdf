@@ -1,0 +1,39 @@
+<?xml version="1.0" ?>
+<sdf version="1.5">
+  <model name="cube">
+	  <static>false</static>
+	    <link name="link">
+	      <inertial>
+		<mass>1.0</mass>
+		<inertia> 
+		  <ixx>0.083</ixx>      
+		  <ixy>0.0</ixy>        
+		  <ixz>0.0</ixz>      
+		  <iyy>0.083</iyy>     
+		  <iyz>0.0</iyz>      
+		  <izz>0.083</izz>      
+		</inertia>
+	      </inertial>
+	      <collision name="collision">
+		<geometry>
+		  <box>
+		    <size>0.085 0.07 0.08</size>
+		  </box>
+		</geometry>
+	      </collision>
+	      <visual name="visual">
+		<geometry>
+		  <box>
+		    <size>0.085 0.07 0.08</size>
+		  </box>
+		</geometry>
+		<material>
+	          <script>
+	            <uri>file://media/materials/scripts/gazebo.material</uri>
+	            <name>Gazebo/Green</name>
+	          </script>
+        </material>
+	      </visual>
+	    </link>
+    </model>
+</sdf>
