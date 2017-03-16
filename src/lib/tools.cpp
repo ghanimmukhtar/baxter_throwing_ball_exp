@@ -55,7 +55,7 @@ bool execute_joint_trajectory(actionlib::SimpleActionClient<control_msgs::Follow
     if(!parameters.get_simulation()){
         while(!ac.getState().isDone())
             if(joint_trajectory.points[(int)joint_trajectory.points.size() - 1].time_from_start.toSec()
-                    - parameters.get_action_server_feedback().feedback.actual.time_from_start.toSec() < 1.0){
+                    - parameters.get_action_server_feedback().feedback.actual.time_from_start.toSec() < 1.08){
                 //open gripper command "release"
                 /*ROS_ERROR_STREAM("the feedback time from start is: "
                                      << parameters.get_joint_action_feedback().feedback.actual.time_from_start);
@@ -380,7 +380,10 @@ bool go_to_initial_position(Data_config& parameters,
         my_joint_trajectory.points.clear();
         construct_two_points_trajectory(parameters, my_joint_trajectory, parameters.get_joint_trajectory().points[0]);
     }
-    if(!move_with_action_server(ac, my_joint_trajectory))
+    move_with_action_server(ac, my_joint_trajectory);
+    //ROS_WARN_STREAM("trying to move to initial position, the action server gave: "
+           //  << parameters.get_joint_action_result().result.error_code);
+    if(parameters.get_joint_action_result().result.error_code != 0)
         return false;
 
     if(parameters.get_grap_ball_simulation())

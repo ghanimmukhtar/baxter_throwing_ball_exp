@@ -108,7 +108,9 @@ int main(int argc, char **argv)
             if(parameters.get_check_collision()){
                 if(is_trajectory_valid(parameters)){
                     if(execute){
-                        go_to_initial_position(parameters, ac, gripper_pub);
+                        while(!go_to_initial_position(parameters, ac, gripper_pub))
+                            ROS_WARN_STREAM("trying to move to initial position, the action server gave: "
+                                     << parameters.get_joint_action_result().result.error_code);
                         execute_joint_trajectory(ac, parameters.get_joint_trajectory(), parameters, gripper_pub);
                     }
                 }
@@ -116,7 +118,9 @@ int main(int argc, char **argv)
                     ROS_ERROR("trajectory not valid !!!!!!!!!");
             }
             else if(execute){
-                go_to_initial_position(parameters, ac, gripper_pub);
+                while(!go_to_initial_position(parameters, ac, gripper_pub))
+                    ROS_WARN_STREAM("trying to move to initial position, the action server gave: "
+                             << parameters.get_joint_action_result().result.error_code);
                 execute_joint_trajectory(ac, parameters.get_joint_trajectory(), parameters, gripper_pub);
             }
 
