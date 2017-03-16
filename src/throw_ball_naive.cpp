@@ -11,9 +11,17 @@ void joint_state_callback(sensor_msgs::JointState jo_state){
 void feedback_callback(control_msgs::FollowJointTrajectoryActionFeedback feedback){
     //parameters.set_joint_action_feedback(feedback);
     if(parameters.get_start_record_feedback()){
-        parameters.set_joint_action_feedback(feedback);
+        parameters.set_action_server_feedback(feedback);
         record_feedback(parameters, feedback, output_file);
     }
+}
+
+void status_callback(actionlib_msgs::GoalStatusArray status){
+    parameters.set_action_server_status(status);
+}
+
+void result_callback(control_msgs::FollowJointTrajectoryActionResult result){
+    parameters.set_action_server_result(result);
 }
 
 //call back that register end effector pose and rearrange the orientation in RPY
@@ -31,6 +39,8 @@ int main(int argc, char **argv)
     ros::Subscriber sub_r_eef_msg = n.subscribe<baxter_core_msgs::EndpointState>("/robot/limb/right/endpoint_state", 10, right_eef_Callback);
     ros::Subscriber right_joint_sub = n.subscribe<sensor_msgs::JointState>("/robot/joint_states", 1, joint_state_callback);
     ros::Subscriber feedback_sub = n.subscribe<control_msgs::FollowJointTrajectoryActionFeedback>("/robot/limb/right/follow_joint_trajectory/feedback", 1, feedback_callback);
+    //ros::Subscriber status_sub = n.subscribe<actionlib_msgs::GoalStatusArray>("/robot/limb/right/follow_joint_trajectory/status", 1, status_callback);
+    ros::Subscriber result_sub = n.subscribe<control_msgs::FollowJointTrajectoryActionResult>("/robot/limb/right/follow_joint_trajectory/result", 1, result_callback);
     ros::Publisher gripper_pub = n.advertise<baxter_core_msgs::EndEffectorCommand>("/robot/end_effector/right_gripper/command", true);
 
     ros::AsyncSpinner my_spinner(1);
@@ -118,6 +128,8 @@ int main(int argc, char **argv)
             parameters.set_record(false);
             ROS_INFO_STREAM("trajectory size is: " << parameters.get_joint_trajectory().points.size());
             ROS_WARN_STREAM("finished trajectory: " << i << " press enter for next trajectory");
+            ros::Duration my_duration(0);
+            parameters.get_action_server_feedback().feedback.actual.time_from_start = my_duration;
             std::cin.ignore();
         }
     }

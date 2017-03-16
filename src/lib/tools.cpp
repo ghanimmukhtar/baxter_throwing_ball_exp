@@ -50,10 +50,12 @@ bool execute_joint_trajectory(actionlib::SimpleActionClient<control_msgs::Follow
     if(!parameters.get_record())
         parameters.set_record(true);
 
+    ROS_WARN_STREAM("trajectory last point time is: " <<
+                    joint_trajectory.points[(int)joint_trajectory.points.size() - 1].time_from_start.toSec());
     if(!parameters.get_simulation()){
         while(!ac.getState().isDone())
             if(joint_trajectory.points[(int)joint_trajectory.points.size() - 1].time_from_start.toSec()
-                    - parameters.get_joint_action_feedback().feedback.actual.time_from_start.toSec() < 1.0){
+                    - parameters.get_action_server_feedback().feedback.actual.time_from_start.toSec() < 1.0){
                 //open gripper command "release"
                 /*ROS_ERROR_STREAM("the feedback time from start is: "
                                      << parameters.get_joint_action_feedback().feedback.actual.time_from_start);
@@ -68,20 +70,20 @@ bool execute_joint_trajectory(actionlib::SimpleActionClient<control_msgs::Follow
 
         while(!ac.getState().isDone()){
             double time_diff = joint_trajectory.points[(int)joint_trajectory.points.size() - 1].time_from_start.toSec()
-                    - parameters.get_joint_action_feedback().feedback.actual.time_from_start.toSec();
-            if(time_diff < 1.0 && time_diff > 0.0){
+                    - parameters.get_action_server_feedback().feedback.actual.time_from_start.toSec();
+            if(time_diff < 1.0 ){
                 //ROS_ERROR_STREAM("the condition seems true cause the difference is: "
                              //    << time_diff);
                 open_right_gripper(parameters, gripper_pub);
             }
 }
     }
-    if (ac.waitForResult(goal.trajectory.points[goal.trajectory.points.size()-1].time_from_start + ros::Duration(10)))
+    if (ac.waitForResult(goal.trajectory.points[goal.trajectory.points.size()-1].time_from_start /*+ ros::Duration(10)*/))
     {
-        ROS_INFO("Action server reported successful execution");
+        ROS_INFO_STREAM("Action server reported successful execution: " << parameters.get_joint_action_result().result.error_code);
         return true;
     } else {
-        ROS_WARN("Action server could not execute trajectory");
+        ROS_WARN_STREAM("Action server could not execute trajectory: " << parameters.get_joint_action_result().result.error_code);
         return false;
     }
 }
@@ -109,10 +111,26 @@ void record_feedback(Data_config& parameters,
 
             //record velocities: desired and actual
             if(parameters.get_velocity_option()){
+                /*ROS_WARN_STREAM("recording velocity feedbacks, size of actual is: " <<
+                                feedback.feedback.actual.velocities.size() <<
+                                " and size of desired is: " <<
+                                feedback.feedback.desired.velocities.size());*/
                 for(size_t i = 0; i < feedback.feedback.desired.velocities.size(); ++i)
                     output_file << feedback.feedback.desired.velocities[i] << ",";
                 for(size_t i = 0; i < feedback.feedback.actual.velocities.size(); ++i)
                     output_file << feedback.feedback.actual.velocities[i] << ",";
+            }
+
+            //record acceleration: desired and actual
+            if(parameters.get_acceleration_option()){
+                /*ROS_WARN_STREAM("recording acceleration feedbacks, size of actual is: " <<
+                                feedback.feedback.actual.accelerations.size() <<
+                                " and size of desired is: " <<
+                                feedback.feedback.desired.accelerations.size());*/
+                for(size_t i = 0; i < feedback.feedback.desired.accelerations.size(); ++i)
+                    output_file << feedback.feedback.desired.accelerations[i] << ",";
+                for(size_t i = 0; i < feedback.feedback.actual.accelerations.size(); ++i)
+                    output_file << feedback.feedback.actual.accelerations[i] << ",";
             }
             output_file << "\n";
         }

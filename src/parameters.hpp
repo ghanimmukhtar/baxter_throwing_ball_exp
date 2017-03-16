@@ -9,6 +9,8 @@
 #include <moveit/robot_state/conversions.h>
 #include <moveit/robot_model_loader/robot_model_loader.h>
 #include <control_msgs/FollowJointTrajectoryActionFeedback.h>
+#include <control_msgs/FollowJointTrajectoryActionResult.h>
+#include <actionlib_msgs/GoalStatusArray.h>
 #include <baxter_core_msgs/SolvePositionIK.h>
 #include <gazebo_msgs/GetModelState.h>
 #include <gazebo_msgs/DeleteModel.h>
@@ -26,6 +28,7 @@ struct Parameters {
     sensor_msgs::JointState my_joint_state;
     std::vector<double> right_arm_joints, left_arm_joints;
     control_msgs::FollowJointTrajectoryActionFeedback right_joint_action_feedback;
+    control_msgs::FollowJointTrajectoryActionResult right_action_result;
     double dt, epsilon, rate, start_time;
     robot_model::RobotModelPtr robot_model;
     bool first = false, start_record_feedback = false, record = false, velocity_option = false, acceleration_option = false, simulation = true, check_collision = true;
@@ -43,6 +46,8 @@ struct Parameters {
 
     int right_gripper_id, left_gripper_id;
     bool grap_ball_simulation = true;
+
+    actionlib_msgs::GoalStatusArray action_server_status;
 };
 
 class Data_config{
@@ -110,8 +115,12 @@ public:
             return params.left_arm_joints;
     }
 
-    control_msgs::FollowJointTrajectoryActionFeedback& get_joint_action_feedback(){
+    control_msgs::FollowJointTrajectoryActionFeedback& get_action_server_feedback(){
             return params.right_joint_action_feedback;
+    }
+
+    control_msgs::FollowJointTrajectoryActionResult& get_joint_action_result(){
+        return params.right_action_result;
     }
 
     double& get_dt(){
@@ -197,7 +206,8 @@ public:
     geometry_msgs::Pose& get_object_pose(std::string object){
         if(strcmp(object.c_str(), "table") == 0)
             return params.table_pose;
-        else if(strcmp(object.c_str(), "ball") == 0)
+        //else if(strcmp(object.c_str(), "ball") == 0)
+        else
             return params.ball_pose;
 
         //else
@@ -242,6 +252,10 @@ public:
 
     bool& get_grap_ball_simulation(){
         return params.grap_ball_simulation;
+    }
+
+    actionlib_msgs::GoalStatusArray& get_action_server_status(){
+        return params.action_server_status;
     }
 
     ///setters
@@ -312,7 +326,11 @@ public:
         params.robot_model = robot_model_baxter;
     }
 
-    void set_joint_action_feedback(control_msgs::FollowJointTrajectoryActionFeedback& feedback){
+    void set_action_server_result(control_msgs::FollowJointTrajectoryActionResult& result){
+        params.right_action_result = result;
+    }
+
+    void set_action_server_feedback(control_msgs::FollowJointTrajectoryActionFeedback& feedback){
             params.right_joint_action_feedback = feedback;
     }
 
@@ -388,6 +406,10 @@ public:
 
     void set_grap_ball_simulation(bool grap){
         params.grap_ball_simulation = grap;
+    }
+
+    void set_action_server_status(actionlib_msgs::GoalStatusArray status){
+        params.action_server_status = status;
     }
 };
 

@@ -18,7 +18,7 @@
 
 
   <param name="input_file_path" value="/home/ghanim/git/catkin_ws/src/baxter_throwing_ball_exp/Trajectory_Data/"/>
-  <param name="feedback_file_path" value="/home/ghanim/git/catkin_ws/src/baxter_throwing_ball_exp/Trajectory_Data/feedback.txt"/>
+  <param name="feedback_file_path" value="/home/ghanim/git/catkin_ws/src/baxter_throwing_ball_exp/Trajectory_Data/feedback.csv"/>
 
   <!--param name="input_file_path" value="/home/mukhtar/git/catkin_ws/src/baxter_throwing_ball_exp/Trajectory_Data/1.txt"/>
   <param name="feedback_file_path" value="/home/mukhtar/git/catkin_ws/src/baxter_throwing_ball_exp/Trajectory_Data/feedback.txt"/-->
@@ -27,8 +27,8 @@
   <param name="grap_simulation" value="true"/>
   <param name="dt" value="0.006"/>
   <param name="rate" value="100"/>
-  <param name="start_trajectory_number" value="3"/>
-  <param name="last_trajectory_number" value="5"/>
+  <param name="start_trajectory_number" value="1"/>
+  <param name="last_trajectory_number" value="13"/>
   <param name="epsilon" value="0.01"/>
   <param name="record" value="$(arg record)"/>
   <param name="gripper_id" value="$(arg gripper_id)"/>
