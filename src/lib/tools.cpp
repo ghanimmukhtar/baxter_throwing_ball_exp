@@ -55,7 +55,7 @@ bool execute_joint_trajectory(actionlib::SimpleActionClient<control_msgs::Follow
     if(!parameters.get_simulation()){
         while(!ac.getState().isDone())
             if(joint_trajectory.points[(int)joint_trajectory.points.size() - 1].time_from_start.toSec()
-                    - parameters.get_action_server_feedback().feedback.actual.time_from_start.toSec() < 1.08){
+                    - parameters.get_action_server_feedback().feedback.actual.time_from_start.toSec() < parameters.get_release_ball_dt()){
                 //open gripper command "release"
                 /*ROS_ERROR_STREAM("the feedback time from start is: "
                                      << parameters.get_joint_action_feedback().feedback.actual.time_from_start);
@@ -71,7 +71,7 @@ bool execute_joint_trajectory(actionlib::SimpleActionClient<control_msgs::Follow
         while(!ac.getState().isDone()){
             double time_diff = joint_trajectory.points[(int)joint_trajectory.points.size() - 1].time_from_start.toSec()
                     - parameters.get_action_server_feedback().feedback.actual.time_from_start.toSec();
-            if(time_diff < 1.0 ){
+            if(time_diff < parameters.get_release_ball_dt() ){
                 //ROS_ERROR_STREAM("the condition seems true cause the difference is: "
                              //    << time_diff);
                 open_right_gripper(parameters, gripper_pub);
@@ -282,14 +282,15 @@ trajectory_msgs::JointTrajectoryPoint get_grapping_point(Data_config& parameters
     geometry_msgs::PoseStamped my_desired_pose;
     my_desired_pose.header.frame_id = "/base";
     my_desired_pose.pose = get_ball_pose(parameters);
-    /*ROS_ERROR_STREAM("ball position is: x = " << my_desired_pose.pose.position.x <<
-                     ", y = " << my_desired_pose.pose.position.y <<
-                     ", and z = " << my_desired_pose.pose.position.z);*/
-    my_desired_pose.pose.orientation = parameters.get_eef_pose("right_gripper").orientation;
-    /*ROS_ERROR_STREAM("right eef orientation is: x = " << my_desired_pose.pose.orientation.x <<
-                     ", y = " << my_desired_pose.pose.orientation.y <<
-                     ", z = " << my_desired_pose.pose.orientation.z <<
-                     ", and w = " << my_desired_pose.pose.orientation.w);*/
+        /*ROS_ERROR_STREAM("ball position is: x = " << my_desired_pose.pose.position.x <<
+                         ", y = " << my_desired_pose.pose.position.y <<
+                         ", and z = " << my_desired_pose.pose.position.z);*/
+        my_desired_pose.pose.orientation = parameters.get_eef_pose("right_gripper").orientation;
+        /*ROS_ERROR_STREAM("right eef orientation is: x = " << my_desired_pose.pose.orientation.x <<
+                         ", y = " << my_desired_pose.pose.orientation.y <<
+                         ", z = " << my_desired_pose.pose.orientation.z <<
+                         ", and w = " << my_desired_pose.pose.orientation.w);*/
+
     baxter_core_msgs::SolvePositionIK::Request req;
     baxter_core_msgs::SolvePositionIK::Response res;
     req.pose_stamp.push_back(my_desired_pose);
@@ -347,7 +348,7 @@ bool go_to_initial_position(Data_config& parameters,
     //move to neutral position so we can spawn objects
     trajectory_msgs::JointTrajectory my_joint_trajectory;
     my_joint_trajectory.joint_names = parameters.get_baxter_arm_joints_names(parameters.get_baxter_arm());
-    if(parameters.get_simulation()){
+    if(parameters.get_grap_ball_simulation()){
         //first spawn the table and the ball in a known position then grap the ball and go to the first point
         construct_two_points_trajectory(parameters, my_joint_trajectory, get_neutral_point());
         if(!move_with_action_server(ac, my_joint_trajectory))
@@ -357,13 +358,16 @@ bool go_to_initial_position(Data_config& parameters,
             spawn_model("table", parameters);
             spawn_model("ball", parameters);
 
+            close_right_gripper(parameters, gripper_pub);
             usleep(1e6);
+            open_right_gripper(parameters, gripper_pub);
             //std::cin.ignore();
             //grap the ball
 
             my_joint_trajectory.points.clear();
             construct_two_points_trajectory(parameters, my_joint_trajectory, get_grapping_point(parameters));
-            open_right_gripper(parameters, gripper_pub);
+
+
             ROS_WARN_STREAM("joints trajectory size to grap the ball is: " << my_joint_trajectory.points.size());
             if(!move_with_action_server(ac, my_joint_trajectory))
                 return false;
@@ -408,7 +412,7 @@ bool is_trajectory_valid(Data_config& parameters){
     std::string arm = "left_arm";
     std::vector<std::string> left_joint_names = parameters.get_baxter_arm_joints_names(arm);
     arm = "right_arm";
-    std::vector<std::string> right_joint_names = parameters.get_baxter_arm_joints_names(arm);;
+    std::vector<std::string> right_joint_names = parameters.get_baxter_arm_joints_names(arm);
     robot_state::RobotState robot_state_holder(parameters.get_baxter_robot_model());
     //this is for simulation
     //robot_state_holder.setVariableValues(parameters.get_joint_state());

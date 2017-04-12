@@ -29,7 +29,7 @@ struct Parameters {
     std::vector<double> right_arm_joints, left_arm_joints;
     control_msgs::FollowJointTrajectoryActionFeedback right_joint_action_feedback;
     control_msgs::FollowJointTrajectoryActionResult right_action_result;
-    double dt, epsilon, rate, start_time;
+    double dt, epsilon, rate, start_time, release_ball_dt;
     robot_model::RobotModelPtr robot_model;
     bool first = false, start_record_feedback = false, record = false, velocity_option = false, acceleration_option = false, simulation = true, check_collision = true;
     int point_count, start_trajectory_number = 1, last_trajectory_number = 1;
@@ -137,6 +137,10 @@ public:
 
     double& get_start_time(){
         return params.start_time;
+    }
+
+    double& get_release_ball_dt(){
+        return params.release_ball_dt;
     }
 
     robot_model::RobotModelPtr& get_baxter_robot_model(){
@@ -410,6 +414,10 @@ public:
 
     void set_action_server_status(actionlib_msgs::GoalStatusArray status){
         params.action_server_status = status;
+    }
+
+    void set_release_ball_dt(double dt){
+        params.release_ball_dt = dt;
     }
 };
 
