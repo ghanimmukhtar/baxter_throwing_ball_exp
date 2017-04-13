@@ -25,6 +25,7 @@
 #include <moveit/robot_state/conversions.h>
 #include <moveit/collision_detection/collision_common.h>
 #include <moveit/planning_scene/planning_scene.h>
+#include <std_msgs/Int64.h>
 
 #include "../../src/parameters.hpp"
 

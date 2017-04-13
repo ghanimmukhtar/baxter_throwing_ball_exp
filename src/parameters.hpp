@@ -31,8 +31,8 @@ struct Parameters {
     control_msgs::FollowJointTrajectoryActionResult right_action_result;
     double dt, epsilon, rate, start_time, release_ball_dt;
     robot_model::RobotModelPtr robot_model;
-    bool first = false, start_record_feedback = false, record = false, velocity_option = false, acceleration_option = false, simulation = true, check_collision = true;
-    int point_count, start_trajectory_number = 1, last_trajectory_number = 1;
+    bool first = false, start_record_feedback = false, record = false, velocity_option = false, modifiable = false, acceleration_option = false, simulation = true, check_collision = true;
+    int point_count, start_trajectory_number = 1, last_trajectory_number = 1, selected_trajectory_index = -1;
 
     ros::ServiceClient gazebo_spawn_clt, gazebo_model_state, gazebo_model_delete, baxter_right_arm_ik_solver;
 
@@ -151,6 +151,10 @@ public:
         return params.first;
     }
 
+    bool& get_modification_possibility(){
+        return params.modifiable;
+    }
+
     bool get_record(){
         return params.record;
     }
@@ -181,6 +185,10 @@ public:
 
     int& get_start_trajectory_number(){
         return params.start_trajectory_number;
+    }
+
+    int& get_selected_trajectory_index(){
+        return params.selected_trajectory_index;
     }
 
     int& get_last_trajectory_number(){
@@ -302,6 +310,10 @@ public:
         params.first = first;
     }
 
+    void set_modification_possibility(bool modifiable){
+        params.modifiable = modifiable;
+    }
+
     void set_record(bool record){
         params.record = record;
     }
@@ -340,6 +352,10 @@ public:
 
     void set_epsilon(double& epsilon){
         params.epsilon = epsilon;
+    }
+
+    void set_selected_trajectory_index(int index){
+        params.selected_trajectory_index = index;
     }
 
     void set_point_count(int count){

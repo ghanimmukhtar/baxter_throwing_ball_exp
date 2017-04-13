@@ -26,5 +26,8 @@ include_directories(include /usr/local/include ${EIGEN3_INCLUDE_DIR} ${catkin_IN
 
 file ( GLOB_RECURSE all_sources src/lib/*.cpp )
 
+add_executable(throw_ball_obstacle_avoidance src/throw_ball_obstacle_avoidance.cpp ${all_sources} src/parameters.hpp)
+target_link_libraries(throw_ball_obstacle_avoidance ${catkin_LIBRARIES})
+
 add_executable(throw_ball_naive src/throw_ball_naive.cpp ${all_sources} src/parameters.hpp)
 target_link_libraries(throw_ball_naive ${catkin_LIBRARIES})
