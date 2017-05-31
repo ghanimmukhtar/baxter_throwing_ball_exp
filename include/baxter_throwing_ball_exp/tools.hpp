@@ -1,35 +1,6 @@
 #ifndef __LIB_MOVEMENT_H__
 #define __LIB_MOVEMENT_H__
 
-#include <ros/ros.h>
-#include <iostream>
-#include <fstream>
-#include <iostream>
-#include <sstream>
-#include <string>
-#include <vector>
-#include <math.h>
-#include <Eigen/Core>
-#include <boost/timer.hpp>
-#include <sensor_msgs/JointState.h>
-#include <tf/tf.h>
-#include <control_msgs/FollowJointTrajectoryAction.h>
-#include <control_msgs/FollowJointTrajectoryActionFeedback.h>
-#include <actionlib/client/simple_action_client.h>
-#include <baxter_core_msgs/EndpointState.h>
-#include <baxter_core_msgs/JointCommand.h>
-#include <baxter_core_msgs/EndEffectorCommand.h>
-#include <geometry_msgs/PoseStamped.h>
-#include <moveit/robot_model_loader/robot_model_loader.h>
-#include <moveit/trajectory_processing/iterative_time_parameterization.h>
-#include <moveit/robot_state/conversions.h>
-#include <moveit/collision_detection/collision_common.h>
-#include <moveit/planning_scene/planning_scene.h>
-
-#include <sensor_msgs/Image.h>
-#include <opencv2/opencv.hpp>
-#include <cv_bridge/cv_bridge.h>
-
 #include "../../src/parameters.hpp"
 
 

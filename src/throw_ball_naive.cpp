@@ -43,11 +43,15 @@ int main(int argc, char **argv)
     ros::Subscriber result_sub = n.subscribe<control_msgs::FollowJointTrajectoryActionResult>("/robot/limb/right/follow_joint_trajectory/result", 1, result_callback);
     ros::Publisher gripper_pub = n.advertise<baxter_core_msgs::EndEffectorCommand>("/robot/end_effector/right_gripper/command", true);
     ros::Publisher image_publisher = n.advertise<sensor_msgs::Image>("/robot/xdisplay", 1);
+    ros::Publisher start_recording_publisher = n.advertise<std_msgs::Bool>("/record_ball_trajectory", true);
+    ros::Publisher trajectory_index_publisher = n.advertise<std_msgs::Int64>("/trajectory_index", true);
 
     ros::AsyncSpinner my_spinner(1);
     my_spinner.start();
 
     std::string input_file_path, feedback_file_path, baxter_arm, dream_logo;
+    std_msgs::Bool ball_trajectory_record;
+    std_msgs::Int64 ball_trajectory_index;
     double dt;
     bool record = false, execute = false;
     n.getParam("input_file_path", input_file_path);
@@ -117,6 +121,12 @@ int main(int argc, char **argv)
                         while(!go_to_initial_position(parameters, ac, gripper_pub))
                             ROS_WARN_STREAM("trying to move to initial position, the action server gave: "
                                      << parameters.get_joint_action_result().result.error_code);
+                        /*start monitoring and recording ball trajectory*/
+                        ball_trajectory_record.data = true;
+                        ball_trajectory_index.data = i;
+                        start_recording_publisher.publish(ball_trajectory_record);
+                        trajectory_index_publisher.publish(ball_trajectory_index);
+
                         execute_joint_trajectory(ac, parameters.get_joint_trajectory(), parameters, gripper_pub);
                     }
                 }
@@ -127,6 +137,12 @@ int main(int argc, char **argv)
                 while(!go_to_initial_position(parameters, ac, gripper_pub))
                     ROS_WARN_STREAM("trying to move to initial position, the action server gave: "
                              << parameters.get_joint_action_result().result.error_code);
+                /*start monitoring and recording ball trajectory*/
+                ball_trajectory_record.data = true;
+                ball_trajectory_index.data = i;
+                start_recording_publisher.publish(ball_trajectory_record);
+                trajectory_index_publisher.publish(ball_trajectory_index);
+
                 execute_joint_trajectory(ac, parameters.get_joint_trajectory(), parameters, gripper_pub);
             }
 
@@ -140,6 +156,8 @@ int main(int argc, char **argv)
             ROS_WARN_STREAM("finished trajectory: " << i << " press enter for next trajectory");
             ros::Duration my_duration(0);
             parameters.get_action_server_feedback().feedback.actual.time_from_start = my_duration;
+            ball_trajectory_record.data = false;
+            start_recording_publisher.publish(ball_trajectory_record);
             std::cin.ignore();
         }
     }

@@ -3,19 +3,43 @@
 #include <ros/ros.h>
 #include <string>
 #include <math.h>
+#include <iostream>
+#include <fstream>
+#include <iostream>
+#include <sstream>
 
 #include <Eigen/Core>
 #include <vector>
 #include <moveit/robot_state/conversions.h>
 #include <moveit/robot_model_loader/robot_model_loader.h>
+
+#include <control_msgs/FollowJointTrajectoryAction.h>
 #include <control_msgs/FollowJointTrajectoryActionFeedback.h>
 #include <control_msgs/FollowJointTrajectoryActionResult.h>
+
 #include <actionlib_msgs/GoalStatusArray.h>
+#include <std_msgs/Bool.h>
+#include <std_msgs/Int64.h>
 #include <baxter_core_msgs/SolvePositionIK.h>
 #include <gazebo_msgs/GetModelState.h>
 #include <gazebo_msgs/DeleteModel.h>
 #include <gazebo_msgs/SpawnModel.h>
 #include <tf/tf.h>
+
+#include <sensor_msgs/JointState.h>
+#include <actionlib/client/simple_action_client.h>
+#include <baxter_core_msgs/EndpointState.h>
+#include <baxter_core_msgs/EndEffectorCommand.h>
+#include <geometry_msgs/PoseStamped.h>
+#include <moveit/trajectory_processing/iterative_time_parameterization.h>
+#include <moveit/robot_state/conversions.h>
+#include <moveit/collision_detection/collision_common.h>
+#include <moveit/planning_scene/planning_scene.h>
+
+#include <sensor_msgs/Image.h>
+#include <opencv2/opencv.hpp>
+#include <cv_bridge/cv_bridge.h>
+
 
 struct Parameters {
     ///////// OBJECT tracking variables

@@ -20,9 +20,9 @@
   <!--param name="input_file_path" value="/home/ghanim/git/catkin_ws/src/baxter_throwing_ball_exp/Trajectory_Data/"/>
   <param name="feedback_file_path" value="/home/ghanim/git/catkin_ws/src/baxter_throwing_ball_exp/Trajectory_Data/feedback.csv"/-->
 
-  <param name="input_file_path" value="/home/le_goff/dream/arm_experiment_ws/src/throwing_code/video_trajectory/"/>
-  <param name="feedback_file_path" value="/home/le_goff/dream/arm_experiment_ws/src/throwing_code/video_trajectory/feedback.txt"/>
-  <param name="dream_logo_path" value="/home/le_goff/dream/arm_experiment_ws/src/throwing_code/dream_logo.png"/>
+  <param name="input_file_path" value="/home/ghanim/git/baxter_throwing_ball_exp/video_trajectory/"/>
+  <param name="feedback_file_path" value="/home/ghanim/git/baxter_throwing_ball_exp/video_trajectory/feedback.txt"/>
+  <param name="dream_logo_path" value="/home/ghanim/git/baxter_throwing_ball_exp/dream_logo.png"/>
 
   <param name="baxter_arm" value="right_arm"/>
   <param name="grap_simulation" value="false"/>

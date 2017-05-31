@@ -9,6 +9,7 @@ find_package(catkin REQUIRED COMPONENTS
   std_msgs
   tf
   trajectory_msgs
+  baxter_core_msgs
 )
 
 find_package(Eigen3 REQUIRED)
