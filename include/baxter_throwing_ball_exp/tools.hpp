@@ -25,7 +25,10 @@
 #include <moveit/robot_state/conversions.h>
 #include <moveit/collision_detection/collision_common.h>
 #include <moveit/planning_scene/planning_scene.h>
-#include <std_msgs/Int64.h>
+
+#include <sensor_msgs/Image.h>
+#include <opencv2/opencv.hpp>
+#include <cv_bridge/cv_bridge.h>
 
 #include "../../src/parameters.hpp"
 
@@ -51,6 +54,8 @@ bool execute_joint_trajectory(actionlib::SimpleActionClient<control_msgs::Follow
 bool go_to_initial_position(Data_config& parameters,
                             actionlib::SimpleActionClient<control_msgs::FollowJointTrajectoryAction> &ac,
                             ros::Publisher& gripper_pub);
+
+void dispaly_image(std::string path, ros::Publisher& image_pub);
 
 /**
  * @brief Execute a trajectory given as joint trajectory using joint action server

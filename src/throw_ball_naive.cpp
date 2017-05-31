@@ -42,11 +42,12 @@ int main(int argc, char **argv)
     //ros::Subscriber status_sub = n.subscribe<actionlib_msgs::GoalStatusArray>("/robot/limb/right/follow_joint_trajectory/status", 1, status_callback);
     ros::Subscriber result_sub = n.subscribe<control_msgs::FollowJointTrajectoryActionResult>("/robot/limb/right/follow_joint_trajectory/result", 1, result_callback);
     ros::Publisher gripper_pub = n.advertise<baxter_core_msgs::EndEffectorCommand>("/robot/end_effector/right_gripper/command", true);
+    ros::Publisher image_publisher = n.advertise<sensor_msgs::Image>("/robot/xdisplay", 1);
 
     ros::AsyncSpinner my_spinner(1);
     my_spinner.start();
 
-    std::string input_file_path, feedback_file_path, baxter_arm;
+    std::string input_file_path, feedback_file_path, baxter_arm, dream_logo;
     double dt;
     bool record = false, execute = false;
     n.getParam("input_file_path", input_file_path);
@@ -54,7 +55,6 @@ int main(int argc, char **argv)
     n.getParam("baxter_arm", baxter_arm);
     n.getParam("dt", dt);
     n.getParam("rate", parameters.get_rate());
-    n.getParam("release_ball_dt", parameters.get_release_ball_dt());
     n.getParam("record", record);
     n.getParam("grap_simulation", parameters.get_grap_ball_simulation());
     n.getParam("epsilon", parameters.get_epsilon());
@@ -66,8 +66,10 @@ int main(int argc, char **argv)
     n.getParam("start_trajectory_number", parameters.get_start_trajectory_number());
     n.getParam("last_trajectory_number", parameters.get_last_trajectory_number());
     n.getParam("gripper_id", parameters.get_gripper_id("right_gripper"));
+    n.getParam("dream_logo_path", dream_logo);
 
-    if(parameters.get_grap_ball_simulation()){
+
+    if(parameters.get_simulation()){
         ros::ServiceClient spawner = n.serviceClient<gazebo_msgs::SpawnModel> ("/gazebo/spawn_sdf_model");
         ros::ServiceClient state = n.serviceClient<gazebo_msgs::GetModelState>("/gazebo/get_model_state");
         ros::ServiceClient deleter = n.serviceClient<gazebo_msgs::DeleteModel>("/gazebo/delete_model");
@@ -82,7 +84,10 @@ int main(int argc, char **argv)
     parameters.set_dt(dt);
     parameters.create_model();
 
+    //dispaly_image(dream_logo, image_publisher);
+
     //test writing
+
     if(record){
         std::ofstream output_file;
         output_file.open("right_joint_state.csv", std::ofstream::out);
@@ -127,8 +132,8 @@ int main(int argc, char **argv)
 
             input_file.close();
             output_file.close();
-
-
+            if(parameters.get_grap_ball_simulation())
+                delete_model("ball", parameters);
             parameters.set_start_record_feedback(false);
             parameters.set_record(false);
             ROS_INFO_STREAM("trajectory size is: " << parameters.get_joint_trajectory().points.size());
@@ -136,9 +141,8 @@ int main(int argc, char **argv)
             ros::Duration my_duration(0);
             parameters.get_action_server_feedback().feedback.actual.time_from_start = my_duration;
             std::cin.ignore();
-            if(parameters.get_grap_ball_simulation())
-                delete_model("ball", parameters);
         }
     }
+
     return 0;
 }

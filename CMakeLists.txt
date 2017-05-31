@@ -2,6 +2,7 @@ cmake_minimum_required(VERSION 2.8.3)
 project(baxter_throwing_ball_exp)
 
 find_package(catkin REQUIRED COMPONENTS
+  cv_bridge
   moveit_ros_planning_interface 
   roscpp
   rospy
@@ -25,9 +26,6 @@ catkin_package(
 include_directories(include /usr/local/include ${EIGEN3_INCLUDE_DIR} ${catkin_INCLUDE_DIRS} ${Boost_INCLUDE_DIRS} )
 
 file ( GLOB_RECURSE all_sources src/lib/*.cpp )
-
-add_executable(throw_ball_obstacle_avoidance src/throw_ball_obstacle_avoidance.cpp ${all_sources} src/parameters.hpp)
-target_link_libraries(throw_ball_obstacle_avoidance ${catkin_LIBRARIES})
 
 add_executable(throw_ball_naive src/throw_ball_naive.cpp ${all_sources} src/parameters.hpp)
 target_link_libraries(throw_ball_naive ${catkin_LIBRARIES})
