@@ -44,13 +44,14 @@ int main(int argc, char **argv)
     ros::Publisher gripper_pub = n.advertise<baxter_core_msgs::EndEffectorCommand>("/robot/end_effector/right_gripper/command", true);
     ros::Publisher image_publisher = n.advertise<sensor_msgs::Image>("/robot/xdisplay", 1);
     ros::Publisher start_recording_publisher = n.advertise<std_msgs::Bool>("/record_ball_trajectory", true);
+    ros::Publisher trajectory_status_publisher = n.advertise<std_msgs::Bool>("/trajectory_finished", true);
     ros::Publisher trajectory_index_publisher = n.advertise<std_msgs::Int64>("/trajectory_index", true);
 
     ros::AsyncSpinner my_spinner(1);
     my_spinner.start();
 
     std::string input_file_path, feedback_file_path, baxter_arm, dream_logo;
-    std_msgs::Bool ball_trajectory_record;
+    std_msgs::Bool ball_trajectory_record, trajectory_finished;
     double dt;
     bool record = false, execute = false;
     n.getParam("input_file_path", input_file_path);
