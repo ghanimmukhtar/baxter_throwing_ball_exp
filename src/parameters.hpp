@@ -69,7 +69,7 @@ struct Parameters {
     Eigen::Vector3d l_eef_rpy_orientation, r_eef_rpy_orientation;
 
     int right_gripper_id, left_gripper_id;
-    bool grap_ball_simulation = true;
+    bool grap_ball_simulation = true, start_next_trajectory;
 
     actionlib_msgs::GoalStatusArray action_server_status;
 };
@@ -169,6 +169,10 @@ public:
 
     bool get_first(){
         return params.first;
+    }
+
+    bool get_start_next_trajectory(){
+        return params.start_next_trajectory;
     }
 
     bool get_record(){
@@ -320,6 +324,10 @@ public:
 
     void set_first(bool first){
         params.first = first;
+    }
+
+    void set_start_next_trajectory(bool start){
+        params.start_next_trajectory = start;
     }
 
     void set_record(bool record){

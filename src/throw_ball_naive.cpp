@@ -29,6 +29,10 @@ void right_eef_Callback(baxter_core_msgs::EndpointState r_eef_feedback){
     locate_eef_pose(r_eef_feedback.pose, parameters, "right_gripper");
 }
 
+void execute_next_trajectory_call_back(const std_msgs::Bool::ConstPtr& next_traj){
+    parameters.set_start_next_trajectory(next_traj->data);
+}
+
 int main(int argc, char **argv)
 {
     ros::init(argc, argv, "throw_ball_naive");
@@ -39,6 +43,7 @@ int main(int argc, char **argv)
     ros::Subscriber sub_r_eef_msg = n.subscribe<baxter_core_msgs::EndpointState>("/robot/limb/right/endpoint_state", 10, right_eef_Callback);
     ros::Subscriber right_joint_sub = n.subscribe<sensor_msgs::JointState>("/robot/joint_states", 1, joint_state_callback);
     ros::Subscriber feedback_sub = n.subscribe<control_msgs::FollowJointTrajectoryActionFeedback>("/robot/limb/right/follow_joint_trajectory/feedback", 1, feedback_callback);
+    ros::Subscriber execute_next_trajectory_sub = n.subscribe<std_msgs::Bool>("/execute_next_trajectory", 1, execute_next_trajectory_call_back);
     //ros::Subscriber status_sub = n.subscribe<actionlib_msgs::GoalStatusArray>("/robot/limb/right/follow_joint_trajectory/status", 1, status_callback);
     ros::Subscriber result_sub = n.subscribe<control_msgs::FollowJointTrajectoryActionResult>("/robot/limb/right/follow_joint_trajectory/result", 1, result_callback);
     ros::Publisher gripper_pub = n.advertise<baxter_core_msgs::EndEffectorCommand>("/robot/end_effector/right_gripper/command", true);
@@ -105,6 +110,8 @@ int main(int argc, char **argv)
         output_file.close();
     }
     else{
+        trajectory_finished.data = false;
+        trajectory_status_publisher.publish(trajectory_finished);
         for(int i = parameters.get_start_trajectory_number(); i <= parameters.get_last_trajectory_number(); i++){
 
             //test reading and executing a trajectory
@@ -148,11 +155,14 @@ int main(int argc, char **argv)
             ROS_WARN_STREAM("finished trajectory: " << i << " press enter for next trajectory");
             ros::Duration my_duration(0);
             parameters.get_action_server_feedback().feedback.actual.time_from_start = my_duration;
+            trajectory_finished.data = true;
+            trajectory_status_publisher.publish(trajectory_finished);
             ball_trajectory_record.data = false;
             if(i == 5)
                 usleep(1e6);
             start_recording_publisher.publish(ball_trajectory_record);
-            std::cin.ignore();
+            //std::cin.ignore();
+            while(!parameters.get_start_next_trajectory());
         }
     }
 
