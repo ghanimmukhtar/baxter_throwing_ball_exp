@@ -1,0 +1,25 @@
+Setup commands
+
+kinect
+
+####  launch kinect:
+
+roslaunch freenect_launch freenect.launch rgb_frame_id:=camera_rgb_optical_frame depth_frame_id:=camera_depth_optical_frame
+
+- launch calibration
+
+roslaunch baxter_kinect_calibration baxter_bundle_calibrate_xtion.launch
+
+- view onlive results: 
+
+rosrun tf tf_echo /torso /camera_link
+
+- Results:
+- Translation: [0.872, 0.017, 1.853]
+- Rotation: in Quaternion [0.633, -0.495, -0.441, -0.401]
+            in RPY (radian) [-2.900, 1.267, -1.149]
+            in RPY (degree) [-166.142, 72.613, -65.840]
+
+
+- publish the transform:
+rosrun tf static_transform_publisher 0.82 0.017 1.853 0.633 -0.495 -0.441 -0.401 /world /camera_link 100

@@ -17,6 +17,21 @@ bool execute_joint_trajectory(actionlib::SimpleActionClient<control_msgs::Follow
                               ros::Publisher& gripper_pub);
 
 /**
+ * @brief Execute a trajectory given as joint trajectory using joint action server
+ * @param action client to joint action server,
+ * @param joint trajectory_msgs, and
+ * @param Data_config class
+ * @return true if the trajectory is successful, false otherwise
+**/
+bool execute_joint_trajectory(actionlib::SimpleActionClient<control_msgs::FollowJointTrajectoryAction>& ac,
+                              trajectory_msgs::JointTrajectory& joint_trajectory,
+                              Data_config& parameters,
+                              ros::Publisher& gripper_pub,
+                              ros::Publisher& start_follow_ball_pub,
+                              ros::Publisher& trajectory_index_pub,
+                              int trajectory_index);
+
+/**
  * @brief Guide the arm to the initial position of the trajectory to be executed later, using joint action server
  * @param Data_config class, and
  * @param action client to joint action server

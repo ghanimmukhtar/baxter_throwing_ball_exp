@@ -51,7 +51,6 @@ int main(int argc, char **argv)
 
     std::string input_file_path, feedback_file_path, baxter_arm, dream_logo;
     std_msgs::Bool ball_trajectory_record;
-    std_msgs::Int64 ball_trajectory_index;
     double dt;
     bool record = false, execute = false;
     n.getParam("input_file_path", input_file_path);
@@ -121,13 +120,9 @@ int main(int argc, char **argv)
                         while(!go_to_initial_position(parameters, ac, gripper_pub))
                             ROS_WARN_STREAM("trying to move to initial position, the action server gave: "
                                      << parameters.get_joint_action_result().result.error_code);
-                        /*start monitoring and recording ball trajectory*/
-                        ball_trajectory_record.data = true;
-                        ball_trajectory_index.data = i;
-                        start_recording_publisher.publish(ball_trajectory_record);
-                        trajectory_index_publisher.publish(ball_trajectory_index);
 
-                        execute_joint_trajectory(ac, parameters.get_joint_trajectory(), parameters, gripper_pub);
+                        execute_joint_trajectory(ac, parameters.get_joint_trajectory(), parameters,
+                                                 gripper_pub, start_recording_publisher, trajectory_index_publisher, i);
                     }
                 }
                 else
@@ -137,13 +132,9 @@ int main(int argc, char **argv)
                 while(!go_to_initial_position(parameters, ac, gripper_pub))
                     ROS_WARN_STREAM("trying to move to initial position, the action server gave: "
                              << parameters.get_joint_action_result().result.error_code);
-                /*start monitoring and recording ball trajectory*/
-                ball_trajectory_record.data = true;
-                ball_trajectory_index.data = i;
-                start_recording_publisher.publish(ball_trajectory_record);
-                trajectory_index_publisher.publish(ball_trajectory_index);
 
-                execute_joint_trajectory(ac, parameters.get_joint_trajectory(), parameters, gripper_pub);
+                execute_joint_trajectory(ac, parameters.get_joint_trajectory(), parameters,
+                                         gripper_pub, start_recording_publisher, trajectory_index_publisher, i);
             }
 
             input_file.close();
@@ -157,6 +148,8 @@ int main(int argc, char **argv)
             ros::Duration my_duration(0);
             parameters.get_action_server_feedback().feedback.actual.time_from_start = my_duration;
             ball_trajectory_record.data = false;
+            if(i == 5)
+                usleep(1e6);
             start_recording_publisher.publish(ball_trajectory_record);
             std::cin.ignore();
         }
