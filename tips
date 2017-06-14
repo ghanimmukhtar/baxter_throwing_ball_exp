@@ -23,3 +23,21 @@ rosrun tf tf_echo /torso /camera_link
 
 - publish the transform:
 rosrun tf static_transform_publisher 0.82 0.017 1.853 0.633 -0.495 -0.441 -0.401 /world /camera_link 100
+
+
+kinect2 results:
+- Translation: [1.160, -0.220, 1.861]
+- Rotation: in Quaternion [-0.527, 0.468, 0.545, 0.455]
+            in RPY (radian) [1.338, 1.539, 3.057]
+            in RPY (degree) [76.651, 88.195, 175.137]
+
+- Translation: [1.166, 0.663, 1.747]
+- Rotation: in Quaternion [-0.556, 0.579, 0.531, 0.270]
+            in RPY (radian) [2.316, 1.128, -2.152]
+            in RPY (degree) [132.718, 64.648, -123.299]
+
+#rosrun tf static_transform_publisher 1.160 -0.220 1.861 -0.527 0.468 0.545 0.455 /world /kinect2_link 100
+#rosrun tf static_transform_publisher 1.160 -0.220 1.861 0.9971 0.0744701 -0.0154938 -0.002499 /world /kinect2_link 100
+RPY
+rosrun tf static_transform_publisher 0.98 -0.220 1.861 0.149208 0.0305302 -3.3 /world /kinect2_link 100
+

@@ -155,14 +155,16 @@ int main(int argc, char **argv)
             ROS_WARN_STREAM("finished trajectory: " << i << " press enter for next trajectory");
             ros::Duration my_duration(0);
             parameters.get_action_server_feedback().feedback.actual.time_from_start = my_duration;
+            if(i == 5)
+                usleep(2e6);
             trajectory_finished.data = true;
             trajectory_status_publisher.publish(trajectory_finished);
             ball_trajectory_record.data = false;
-            if(i == 5)
-                usleep(1e6);
+
             start_recording_publisher.publish(ball_trajectory_record);
             //std::cin.ignore();
             while(!parameters.get_start_next_trajectory());
+            parameters.set_start_next_trajectory(false);
         }
     }
 
