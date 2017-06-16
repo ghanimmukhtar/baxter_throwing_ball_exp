@@ -40,23 +40,21 @@ int main(int argc, char **argv)
 
     //subscribers
     actionlib::SimpleActionClient<control_msgs::FollowJointTrajectoryAction> ac("/robot/limb/right/follow_joint_trajectory", true);
+
     ros::Subscriber sub_r_eef_msg = n.subscribe<baxter_core_msgs::EndpointState>("/robot/limb/right/endpoint_state", 10, right_eef_Callback);
     ros::Subscriber right_joint_sub = n.subscribe<sensor_msgs::JointState>("/robot/joint_states", 1, joint_state_callback);
     ros::Subscriber feedback_sub = n.subscribe<control_msgs::FollowJointTrajectoryActionFeedback>("/robot/limb/right/follow_joint_trajectory/feedback", 1, feedback_callback);
-    ros::Subscriber execute_next_trajectory_sub = n.subscribe<std_msgs::Bool>("/execute_next_trajectory", 1, execute_next_trajectory_call_back);
-    //ros::Subscriber status_sub = n.subscribe<actionlib_msgs::GoalStatusArray>("/robot/limb/right/follow_joint_trajectory/status", 1, status_callback);
     ros::Subscriber result_sub = n.subscribe<control_msgs::FollowJointTrajectoryActionResult>("/robot/limb/right/follow_joint_trajectory/result", 1, result_callback);
+
     ros::Publisher gripper_pub = n.advertise<baxter_core_msgs::EndEffectorCommand>("/robot/end_effector/right_gripper/command", true);
     ros::Publisher image_publisher = n.advertise<sensor_msgs::Image>("/robot/xdisplay", 1);
-    ros::Publisher start_recording_publisher = n.advertise<std_msgs::Bool>("/record_ball_trajectory", true);
-    ros::Publisher trajectory_status_publisher = n.advertise<std_msgs::Bool>("/trajectory_finished", true);
-    ros::Publisher trajectory_index_publisher = n.advertise<std_msgs::Int64>("/trajectory_index", true);
+    ros::Publisher baxter_trajectory_status_pub = n.advertise<std_msgs::Int16>("/baxter_throwing/status", true);
 
     ros::AsyncSpinner my_spinner(1);
     my_spinner.start();
 
     std::string input_file_path, feedback_file_path, baxter_arm, dream_logo;
-    std_msgs::Bool ball_trajectory_record, trajectory_finished;
+    std_msgs::Int16 trajectory_status;
     double dt;
     bool record = false, execute = false;
     n.getParam("input_file_path", input_file_path);
@@ -110,8 +108,6 @@ int main(int argc, char **argv)
         output_file.close();
     }
     else{
-        trajectory_finished.data = false;
-        trajectory_status_publisher.publish(trajectory_finished);
         for(int i = parameters.get_start_trajectory_number(); i <= parameters.get_last_trajectory_number(); i++){
 
             //test reading and executing a trajectory
@@ -130,7 +126,7 @@ int main(int argc, char **argv)
                                      << parameters.get_joint_action_result().result.error_code);
 
                         execute_joint_trajectory(ac, parameters.get_joint_trajectory(), parameters,
-                                                 gripper_pub, start_recording_publisher, trajectory_index_publisher, i);
+                                                 gripper_pub, baxter_trajectory_status_pub);
                     }
                 }
                 else
@@ -142,7 +138,7 @@ int main(int argc, char **argv)
                              << parameters.get_joint_action_result().result.error_code);
 
                 execute_joint_trajectory(ac, parameters.get_joint_trajectory(), parameters,
-                                         gripper_pub, start_recording_publisher, trajectory_index_publisher, i);
+                                         gripper_pub, baxter_trajectory_status_pub);
             }
 
             input_file.close();
@@ -157,14 +153,9 @@ int main(int argc, char **argv)
             parameters.get_action_server_feedback().feedback.actual.time_from_start = my_duration;
             if(i == 5)
                 usleep(2e6);
-            trajectory_finished.data = true;
-            trajectory_status_publisher.publish(trajectory_finished);
-            ball_trajectory_record.data = false;
-
-            start_recording_publisher.publish(ball_trajectory_record);
-            //std::cin.ignore();
-            while(!parameters.get_start_next_trajectory());
-            parameters.set_start_next_trajectory(false);
+            trajectory_status.data = 2;
+            baxter_trajectory_status_pub.publish(trajectory_status);
+            std::cin.ignore();
         }
     }
 

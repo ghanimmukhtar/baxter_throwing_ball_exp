@@ -10,13 +10,9 @@ typedef vector <record_t> data_t;
 bool execute_joint_trajectory(actionlib::SimpleActionClient<control_msgs::FollowJointTrajectoryAction>& ac,
                               trajectory_msgs::JointTrajectory& joint_trajectory,
                               Data_config &parameters, ros::Publisher &gripper_pub,
-                              ros::Publisher &start_follow_ball_pub,
-                              ros::Publisher &trajectory_index_pub,
-                              int trajectory_index){
-
-    std_msgs::Bool ball_trajectory_record;
-    std_msgs::Int64 ball_trajectory_index;
-    ball_trajectory_index.data = trajectory_index;
+                              ros::Publisher &trajectory_status_pub){
+    std_msgs::Int16 trajectory_status;
+    trajectory_status.data = 1;
 
     baxter_core_msgs::EndEffectorCommand calibrate_command;
     //if on the real robot calibrate the gripper and grasp the object
@@ -50,14 +46,15 @@ bool execute_joint_trajectory(actionlib::SimpleActionClient<control_msgs::Follow
     //usleep(2e6);
     control_msgs::FollowJointTrajectoryGoal goal;
 
-    /*start monitoring and recording ball trajectory*/
-    ball_trajectory_record.data = true;
-    start_follow_ball_pub.publish(ball_trajectory_record);
-    trajectory_index_pub.publish(ball_trajectory_index);
+
 
     goal.trajectory = joint_trajectory;
     goal.goal_time_tolerance = ros::Duration(1.0);
     ac.sendGoal(goal);
+
+    /*start monitoring and recording ball trajectory*/
+    trajectory_status_pub.publish(trajectory_status);
+
     if(!parameters.get_start_record_feedback())
         parameters.set_start_record_feedback(true);
     if(!parameters.get_record())

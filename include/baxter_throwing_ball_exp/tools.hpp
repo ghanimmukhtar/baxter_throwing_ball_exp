@@ -27,9 +27,7 @@ bool execute_joint_trajectory(actionlib::SimpleActionClient<control_msgs::Follow
                               trajectory_msgs::JointTrajectory& joint_trajectory,
                               Data_config& parameters,
                               ros::Publisher& gripper_pub,
-                              ros::Publisher& start_follow_ball_pub,
-                              ros::Publisher& trajectory_index_pub,
-                              int trajectory_index);
+                              ros::Publisher& trajectory_status_pub);
 
 /**
  * @brief Guide the arm to the initial position of the trajectory to be executed later, using joint action server

@@ -20,6 +20,7 @@
 #include <actionlib_msgs/GoalStatusArray.h>
 #include <std_msgs/Bool.h>
 #include <std_msgs/Int64.h>
+#include <std_msgs/Int16.h>
 #include <baxter_core_msgs/SolvePositionIK.h>
 #include <gazebo_msgs/GetModelState.h>
 #include <gazebo_msgs/DeleteModel.h>
