@@ -3,6 +3,7 @@
 // The parameters structure is used by all call backs, main and service
 Data_config parameters;
 std::ofstream output_file;
+ros::Publisher baxter_trajectory_status_pub;
 
 void joint_state_callback(sensor_msgs::JointState jo_state){
     parameters.set_joint_state(jo_state);
@@ -10,10 +11,14 @@ void joint_state_callback(sensor_msgs::JointState jo_state){
 
 void feedback_callback(control_msgs::FollowJointTrajectoryActionFeedback feedback){
     //parameters.set_joint_action_feedback(feedback);
+    std_msgs::Int16 trajectory_status;
+    trajectory_status.data = 1;
     if(parameters.get_start_record_feedback()){
         parameters.set_action_server_feedback(feedback);
         record_feedback(parameters, feedback, output_file);
-    }
+        if(feedback.status.ACTIVE)
+            baxter_trajectory_status_pub.publish(trajectory_status);
+    }        
 }
 
 void status_callback(actionlib_msgs::GoalStatusArray status){
@@ -48,7 +53,7 @@ int main(int argc, char **argv)
 
     ros::Publisher gripper_pub = n.advertise<baxter_core_msgs::EndEffectorCommand>("/robot/end_effector/right_gripper/command", true);
     ros::Publisher image_publisher = n.advertise<sensor_msgs::Image>("/robot/xdisplay", 1);
-    ros::Publisher baxter_trajectory_status_pub = n.advertise<std_msgs::Int16>("/baxter_throwing/status", true);
+    baxter_trajectory_status_pub = n.advertise<std_msgs::Int16>("/baxter_throwing/status", true);
 
     ros::AsyncSpinner my_spinner(1);
     my_spinner.start();

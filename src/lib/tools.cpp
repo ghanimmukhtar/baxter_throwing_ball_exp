@@ -53,7 +53,7 @@ bool execute_joint_trajectory(actionlib::SimpleActionClient<control_msgs::Follow
     ac.sendGoal(goal);
 
     /*start monitoring and recording ball trajectory*/
-    trajectory_status_pub.publish(trajectory_status);
+    //trajectory_status_pub.publish(trajectory_status);
 
     if(!parameters.get_start_record_feedback())
         parameters.set_start_record_feedback(true);
